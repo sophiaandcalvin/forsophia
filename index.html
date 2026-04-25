@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>For Sophia</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <canvas id="ambientCanvas" aria-hidden="true"></canvas>
+
+    <main id="app" class="app">
+      <section id="landingScreen" class="screen landing-screen is-active" aria-labelledby="landingTitle">
+        <canvas id="loveTrailCanvas" class="love-trail-canvas" aria-hidden="true"></canvas>
+        <div class="landing-content">
+          <p class="overline">A constellation of little moments</p>
+          <h1 id="landingTitle">For Sophia</h1>
+          <p class="landing-subtext">My dear love, my one and only.</p>
+          <div class="landing-actions">
+            <button id="enterButton" class="primary-button" type="button">Enter</button>
+            <button id="landingMusicButton" class="ghost-button" type="button" hidden>Play music</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="openingScreen" class="screen opening-screen" aria-labelledby="openingTitle">
+        <div class="opening-shell">
+          <article id="openingLetter" class="opening-letter">
+            <p id="openingKicker" class="overline">Before the stars</p>
+            <h2 id="openingTitle">I need to begin honestly.</h2>
+            <p id="openingLine" class="opening-line"></p>
+            <div id="openingProgress" class="opening-progress" aria-hidden="true"></div>
+          </article>
+          <button id="skipOpeningButton" class="ghost-button" type="button">Skip to the stars</button>
+        </div>
+      </section>
+
+      <section id="constellationScreen" class="screen constellation-screen" aria-label="Constellation of memories">
+        <svg id="constellationLines" class="constellation-lines" aria-hidden="true"></svg>
+        <div id="starsLayer" class="stars-layer" aria-label="Memory stars"></div>
+
+        <header class="top-bar">
+          <button id="backToLandingButton" class="icon-button" type="button" aria-label="Back to landing">
+            <span aria-hidden="true">&lt;</span>
+          </button>
+          <div class="progress-stack" aria-live="polite">
+            <span id="memoryProgress">Memories found: 0 / 0</span>
+            <span id="heartProgress">Hidden moments: 0 / 0</span>
+          </div>
+          <div class="top-actions">
+            <button id="openAlbumButton" class="secondary-button album-unlock-button" type="button" hidden>Open album</button>
+            <button id="openPuzzleButton" class="secondary-button" type="button" disabled>Puzzle locked</button>
+            <button id="openLetterButton" class="secondary-button" type="button">Read letter</button>
+            <button id="openAdminButton" class="secondary-button" type="button" hidden>Admin</button>
+          </div>
+        </header>
+
+        <div class="constellation-hint">Click a star to open a memory.</div>
+      </section>
+
+      <section id="puzzleScreen" class="screen puzzle-screen" aria-labelledby="puzzleTitle">
+        <div class="tool-shell">
+          <header class="screen-header">
+            <div>
+              <p class="overline">Unlocked</p>
+              <h2 id="puzzleTitle">One quiet picture</h2>
+            </div>
+            <div class="header-actions">
+              <button id="shufflePuzzleButton" class="secondary-button" type="button">Shuffle</button>
+              <button id="closePuzzleButton" class="secondary-button" type="button">Back to stars</button>
+            </div>
+          </header>
+          <div class="puzzle-layout">
+            <div id="puzzleBoard" class="puzzle-board" aria-label="Puzzle board"></div>
+            <aside class="puzzle-panel">
+              <h3>Put the pieces back together.</h3>
+              <p>Click one piece, then another, to swap them. The letter is always available; this is just a small extra moment.</p>
+              <button id="puzzleLetterButton" class="primary-button" type="button">Read the letter</button>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section id="letterScreen" class="screen letter-screen" aria-labelledby="letterTitle">
+        <article class="letter-paper">
+          <button id="closeLetterButton" class="icon-button letter-close" type="button" aria-label="Back to constellation">
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">For you</p>
+          <h2 id="letterTitle">A letter</h2>
+          <div id="letterBody" class="letter-body"></div>
+        </article>
+      </section>
+    </main>
+
+    <aside class="music-player" aria-label="Music controls">
+      <audio id="musicAudio" preload="metadata"></audio>
+      <button id="musicToggleButton" class="icon-button" type="button" aria-label="Play music">
+        <span id="musicIcon" aria-hidden="true">Play</span>
+      </button>
+      <span id="musicTrackLabel" class="track-label">No track</span>
+      <label class="volume-control">
+        <span>Volume</span>
+        <input id="volumeInput" type="range" min="0" max="1" step="0.01" value="0.35">
+      </label>
+    </aside>
+
+    <div id="memoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+      <article class="memory-card">
+        <button class="icon-button modal-close" type="button" aria-label="Close memory" data-close-modal>
+          <span aria-hidden="true">x</span>
+        </button>
+        <button id="hiddenMomentButton" class="sc-stamp" type="button" hidden aria-label="Reveal hidden moment">SC</button>
+        <div id="memoryImage" class="memory-image"></div>
+        <div class="memory-copy">
+          <p id="memoryContext" class="context-line"></p>
+          <h2 id="memoryTitle"></h2>
+          <p id="memoryCaption"></p>
+        </div>
+      </article>
+    </div>
+
+    <div id="hiddenMemoryModal" class="modal hidden-memory-modal" role="dialog" aria-modal="true" aria-labelledby="hiddenMemoryTitle" hidden>
+      <div class="modal-backdrop" data-close-hidden-memory></div>
+      <article class="hidden-memory-card">
+        <button class="icon-button modal-close" type="button" aria-label="Close hidden moment" data-close-hidden-memory>
+          <span aria-hidden="true">x</span>
+        </button>
+        <div id="hiddenMemoryMedia" class="hidden-memory-media"></div>
+        <div class="hidden-memory-copy">
+          <p class="overline">Hidden moment</p>
+          <h2 id="hiddenMemoryTitle">A small thing I love</h2>
+          <p id="hiddenMemoryCaption"></p>
+        </div>
+      </article>
+    </div>
+
+    <div id="albumModal" class="modal album-modal" role="dialog" aria-modal="true" aria-labelledby="albumTitle" hidden>
+      <div class="modal-backdrop" data-close-album></div>
+      <article class="album-card">
+        <button class="icon-button modal-close" type="button" aria-label="Close album" data-close-album>
+          <span aria-hidden="true">x</span>
+        </button>
+        <div id="albumMedia" class="album-media"></div>
+        <div class="album-copy">
+          <p id="albumCounter" class="context-line"></p>
+          <h2 id="albumTitle">Memory album</h2>
+          <p id="albumContext" class="album-context"></p>
+          <p id="albumCaption"></p>
+          <div class="album-actions">
+            <button id="albumPrevButton" class="secondary-button" type="button">Previous</button>
+            <button id="albumNextButton" class="secondary-button" type="button">Next</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <aside id="adminPanel" class="admin-panel" aria-label="Admin dashboard" hidden>
+      <div class="admin-backdrop" data-close-admin></div>
+      <form id="adminForm" class="admin-drawer">
+        <header class="admin-header">
+          <div>
+            <p class="overline">Private controls</p>
+            <h2>Admin dashboard</h2>
+          </div>
+          <button class="icon-button" type="button" aria-label="Close admin" data-close-admin>
+            <span aria-hidden="true">x</span>
+          </button>
+        </header>
+
+        <div class="admin-save-bar">
+          <button id="saveAdminButton" class="primary-button" type="submit">Save changes</button>
+          <span>Save after uploads or edits.</span>
+        </div>
+
+        <section id="adminAuthSection" class="admin-section admin-auth-section">
+          <h3>Supabase</h3>
+          <p id="adminSupabaseStatus" class="admin-status">Supabase is not configured. Changes save in this browser only.</p>
+          <label id="adminEmailLabel">
+            Admin email
+            <input id="adminEmailInput" type="email" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <label id="adminPasswordLabel">
+            Password
+            <input id="adminPasswordInput" type="password" autocomplete="current-password" placeholder="Your Supabase password">
+          </label>
+          <div class="admin-actions">
+            <button id="signInButton" class="primary-button" type="button">Sign in</button>
+            <button id="sendMagicLinkButton" class="secondary-button" type="button">Email link</button>
+            <button id="signOutButton" class="secondary-button" type="button" hidden>Sign out</button>
+            <button id="reloadRemoteButton" class="secondary-button" type="button">Reload remote</button>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h3>Email invite</h3>
+          <p id="emailInviteStatus" class="admin-status">Send a test invitation through the server email endpoint. SES keys stay server-only.</p>
+          <label>
+            Test recipient
+            <input id="emailRecipientInput" type="email" autocomplete="email" placeholder="sophia@example.com">
+          </label>
+          <label>
+            Page link
+            <input id="emailPageUrlInput" type="url" placeholder="https://your-domain.com">
+          </label>
+          <label>
+            From display name
+            <input id="emailFromNameInput" type="text" maxlength="80" placeholder="A little constellation">
+          </label>
+          <p class="admin-status">The display name can be gentle or anonymous, but the sender email still has to be your verified SES sender.</p>
+          <div class="admin-actions">
+            <button id="sendTestEmailButton" class="secondary-button" type="button">Send test email</button>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h3>Experience</h3>
+          <label>
+            Title
+            <input id="adminTitle" type="text" required>
+          </label>
+          <label>
+            Landing text
+            <textarea id="adminSubtitle" rows="3" required></textarea>
+          </label>
+          <label>
+            Hearts needed to unlock puzzle
+            <input id="adminThreshold" type="number" min="1" max="12" required>
+          </label>
+        </section>
+
+        <section class="admin-section">
+          <h3>Music</h3>
+          <p id="adminMusicStatus" class="admin-status">No saved music tracks.</p>
+          <label>
+            Song 1
+            <input type="file" accept="audio/*" data-music-input="0">
+          </label>
+          <label>
+            Song 2
+            <input type="file" accept="audio/*" data-music-input="1">
+          </label>
+          <label>
+            Song 3
+            <input type="file" accept="audio/*" data-music-input="2">
+          </label>
+          <label>
+            Default volume
+            <input id="adminMusicVolume" type="range" min="0" max="1" step="0.01">
+          </label>
+          <div class="admin-actions">
+            <button id="clearMusicButton" class="secondary-button" type="button">Clear music</button>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h3>Media library</h3>
+          <p id="soundLibraryStatus" class="admin-status">No star sound effects saved.</p>
+          <label>
+            Star hover sound
+            <input type="file" accept="audio/*" data-sfx-input="starHover">
+          </label>
+          <label>
+            Hover volume
+            <input type="range" min="0" max="1" step="0.01" data-sfx-volume="starHover">
+          </label>
+          <label>
+            Star click sound
+            <input type="file" accept="audio/*" data-sfx-input="starClick">
+          </label>
+          <label>
+            Click volume
+            <input type="range" min="0" max="1" step="0.01" data-sfx-volume="starClick">
+          </label>
+          <div class="admin-actions">
+            <button id="clearSoundEffectsButton" class="secondary-button" type="button">Clear sound effects</button>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h3>Puzzle and letter</h3>
+          <label>
+            Puzzle image
+            <input id="adminPuzzleImage" type="file" accept="image/*">
+          </label>
+          <button id="clearPuzzleImageButton" class="secondary-button" type="button">Clear puzzle image</button>
+          <label>
+            Letter title
+            <input id="adminLetterTitle" type="text" required>
+          </label>
+          <label>
+            Letter body
+            <textarea id="adminLetterBody" rows="10" required></textarea>
+          </label>
+          <p id="letterPhotoStatus" class="admin-status">No letter photos saved.</p>
+          <label>
+            Letter photo 1
+            <input type="file" accept="image/*" data-letter-photo-input="0">
+          </label>
+          <label>
+            Letter photo 2
+            <input type="file" accept="image/*" data-letter-photo-input="1">
+          </label>
+          <label>
+            Letter photo 3
+            <input type="file" accept="image/*" data-letter-photo-input="2">
+          </label>
+          <button id="clearLetterPhotosButton" class="secondary-button" type="button">Clear letter photos</button>
+        </section>
+
+        <section class="admin-section">
+          <div class="section-title-row">
+            <h3>Memories</h3>
+            <button id="addMemoryButton" class="secondary-button" type="button">Add memory</button>
+          </div>
+          <div id="memoryEditorList" class="memory-editor-list"></div>
+        </section>
+
+        <section class="admin-section">
+          <h3>JSON</h3>
+          <div class="admin-actions">
+            <button id="exportJsonButton" class="secondary-button" type="button">Export JSON</button>
+            <label class="secondary-button file-button">
+              Import JSON
+              <input id="importJsonInput" type="file" accept="application/json,.json">
+            </label>
+            <button id="resetProgressButton" class="secondary-button" type="button">Reset progress</button>
+            <button id="resetDataButton" class="secondary-button danger-button" type="button">Reset app data</button>
+          </div>
+        </section>
+      </form>
+    </aside>
+
+    <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
