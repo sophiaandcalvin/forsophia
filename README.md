@@ -43,6 +43,7 @@ Open `/admin` to show the admin dashboard. The main experience does not show an 
 
 - Table: `public.constellation_pages`
 - Table: `public.love_lottery_progress`
+- Table: `public.wishlist_items`
 - Page key: `VITE_CONSTELLATION_PAGE_ID`
 - Storage bucket: `VITE_SUPABASE_MEDIA_BUCKET`
 - Public users can read the constellation.
@@ -55,6 +56,7 @@ Open `/admin` to show the admin dashboard. The main experience does not show an 
 - The letter is always available from the constellation header and supports three inline photos.
 - The admin dashboard can send a test invitation email through `/api/send-test-email` when you are signed in. The endpoint verifies the Supabase session before using SES.
 - Love Lottery progress is saved in `localStorage` immediately. When Supabase is configured and you are signed in, the app also syncs that progress to `public.love_lottery_progress`. Public visitors can read the saved progress, but only the authenticated owner can write it under the default RLS policies.
+- Wishlist items save locally first and sync to `public.wishlist_items` when Supabase is configured. The wishlist table allows public read/add/update so Sophia can add links from the public page without a login.
 
 The admin panel uses Supabase email/password auth with magic-link fallback. Add yourself as a user through Supabase Auth, then sign in from `/admin` to save changes online.
 

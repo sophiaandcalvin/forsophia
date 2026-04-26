@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   progress: "sophiaConstellation:progress",
   layout: "sophiaConstellation:layout",
   loveLottery: "sophiaConstellation:loveLottery",
+  wishlist: "sophiaConstellation:wishlist",
 };
 
 const LEGACY_DEFAULT_SUBTITLE = "I made something for you.\nNo expectations - just memories.";
@@ -398,6 +399,7 @@ const state = {
   data: loadData(),
   progress: loadProgress(),
   loveLottery: loadLoveLotteryProgress(),
+  wishlist: loadWishlistItems(),
   session: null,
   remoteReady: false,
   remoteMessage: "",
@@ -428,9 +430,17 @@ const elements = {
   ambientCanvas: document.querySelector("#ambientCanvas"),
   loveTrailCanvas: document.querySelector("#loveTrailCanvas"),
   dashboardScreen: document.querySelector("#dashboardScreen"),
+  wishlistScreen: document.querySelector("#wishlistScreen"),
   randomizerScreen: document.querySelector("#randomizerScreen"),
   openSophiaPageButton: document.querySelector("#openSophiaPageButton"),
   openRandomizerButton: document.querySelector("#openRandomizerButton"),
+  openWishlistButton: document.querySelector("#openWishlistButton"),
+  wishlistHomeButton: document.querySelector("#wishlistHomeButton"),
+  wishlistTabs: Array.from(document.querySelectorAll("[data-wishlist-tab]")),
+  wishlistPanels: Array.from(document.querySelectorAll("[data-wishlist-panel]")),
+  wishlistForms: Array.from(document.querySelectorAll("[data-wishlist-added-by]")),
+  wishlistCalvinList: document.querySelector("#wishlistCalvinList"),
+  wishlistList: document.querySelector("#wishlistList"),
   randomizerHomeButton: document.querySelector("#randomizerHomeButton"),
   heartPhotoFrame: document.querySelector("#heartPhotoFrame"),
   randomizerStage: document.querySelector("#randomizerStage"),
@@ -788,6 +798,43 @@ function normalizeLoveLotteryProgress(progress = {}) {
   };
 }
 
+function loadWishlistItems() {
+  const stored = localStorage.getItem(STORAGE_KEYS.wishlist);
+  if (!stored) {
+    return [];
+  }
+
+  try {
+    return normalizeWishlistItems(JSON.parse(stored));
+  } catch {
+    return [];
+  }
+}
+
+function normalizeWishlistItems(items) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => ({
+      id: item.id || crypto.randomUUID?.() || `wish-${Date.now()}-${Math.round(Math.random() * 100000)}`,
+      page_id: item.page_id || PAGE_ID,
+      item_name: item.item_name || item.name || "",
+      item_url: item.item_url || item.url || "",
+      added_by: normalizeWishlistPerson(item.added_by || item.addedBy || "Sophia"),
+      purchased: Boolean(item.purchased),
+      created_at: item.created_at || new Date().toISOString(),
+      updated_at: item.updated_at || new Date().toISOString(),
+    }))
+    .filter((item) => item.item_name && /^https?:\/\//i.test(item.item_url));
+}
+
+function normalizeWishlistPerson(value) {
+  return String(value).toLowerCase() === "calvin" ? "Calvin" : "Sophia";
+}
+
+function saveWishlistItems() {
+  state.wishlist = normalizeWishlistItems(state.wishlist);
+  localStorage.setItem(STORAGE_KEYS.wishlist, JSON.stringify(state.wishlist));
+}
+
 function buildLoveLotteryActivities() {
   const generated = [];
   LOVE_LOTTERY_ACTIONS.forEach((action) => {
@@ -895,6 +942,9 @@ function getScreenForPath() {
   if (path === "/love-lottery") {
     return "randomizer";
   }
+  if (path === "/wishlist") {
+    return "wishlist";
+  }
   return "dashboard";
 }
 
@@ -923,6 +973,7 @@ async function initSupabase() {
 
   await loadRemoteData();
   await loadRemoteLoveLotteryProgress();
+  await loadRemoteWishlistItems();
   renderAdminAuth();
 }
 
@@ -1036,6 +1087,72 @@ async function saveRemoteLoveLotteryProgress() {
   return { saved: true };
 }
 
+async function loadRemoteWishlistItems() {
+  if (!SUPABASE_CONFIGURED) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("wishlist_items")
+    .select("id,page_id,item_name,item_url,added_by,purchased,created_at,updated_at")
+    .eq("page_id", PAGE_ID)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    state.remoteMessage = `Wishlist load failed: ${error.message}`;
+    renderAdminAuth();
+    return;
+  }
+
+  state.wishlist = normalizeWishlistItems(data || []);
+  saveWishlistItems();
+  renderWishlist();
+}
+
+async function addRemoteWishlistItem(item) {
+  if (!SUPABASE_CONFIGURED) {
+    return { saved: false };
+  }
+
+  const { data, error } = await supabase
+    .from("wishlist_items")
+    .insert({
+      page_id: PAGE_ID,
+      item_name: item.item_name,
+      item_url: item.item_url,
+      added_by: item.added_by,
+      purchased: false,
+    })
+    .select("id,page_id,item_name,item_url,added_by,purchased,created_at,updated_at")
+    .single();
+
+  if (error) {
+    return { saved: false, reason: error.message };
+  }
+
+  return { saved: true, item: data };
+}
+
+async function updateRemoteWishlistItem(item) {
+  if (!SUPABASE_CONFIGURED) {
+    return { saved: false };
+  }
+
+  const { error } = await supabase
+    .from("wishlist_items")
+    .update({
+      item_name: item.item_name,
+      item_url: item.item_url,
+      added_by: item.added_by,
+      purchased: item.purchased,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", item.id)
+    .eq("page_id", PAGE_ID);
+
+  return error ? { saved: false, reason: error.message } : { saved: true };
+}
+
 function renderAdminAuth() {
   if (!elements.adminSupabaseStatus) {
     return;
@@ -1071,6 +1188,7 @@ function renderApp() {
   elements.landingSubtext.innerHTML = escapeHtml(state.data.subtitle).replace(/\n/g, "<br>");
   renderMusic();
   renderLoveLotteryMusic();
+  renderWishlist();
   prepareSoundEffectPlayers();
   renderHeartPhotoFrame();
   renderStars();
@@ -1196,6 +1314,165 @@ function renderLoveLottery() {
     row.append(label, tag);
     elements.activityList.append(row);
   });
+}
+
+function renderWishlist() {
+  renderWishlistGrid();
+  renderWishlistCalvinList();
+}
+
+function renderWishlistGrid() {
+  elements.wishlistList.innerHTML = "";
+
+  if (!state.wishlist.length) {
+    elements.wishlistList.innerHTML = `<p class="wishlist-empty">No wishes yet.</p>`;
+    return;
+  }
+
+  state.wishlist.forEach((item) => {
+    elements.wishlistList.append(createWishlistCard(item, false));
+  });
+}
+
+function renderWishlistCalvinList() {
+  elements.wishlistCalvinList.innerHTML = "";
+
+  if (!state.wishlist.length) {
+    elements.wishlistCalvinList.innerHTML = `<p class="wishlist-empty">Nothing to mark yet.</p>`;
+    return;
+  }
+
+  state.wishlist.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "wishlist-check-row";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.item_name)}</strong>
+        ${renderWishlistPersonTags(item.added_by)}
+        <a href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(getUrlHost(item.item_url))}</a>
+      </div>
+      <label class="wishlist-purchased-toggle">
+        <input type="checkbox" data-wishlist-purchased="${escapeAttribute(item.id)}" ${item.purchased ? "checked" : ""}>
+        Gotten
+      </label>
+    `;
+    elements.wishlistCalvinList.append(row);
+  });
+}
+
+function createWishlistCard(item) {
+  const card = document.createElement("article");
+  card.className = "wishlist-card";
+  card.classList.toggle("is-purchased", item.purchased);
+  card.innerHTML = `
+    <a class="wishlist-preview" href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(item.item_name)}">
+      <iframe src="${escapeAttribute(item.item_url)}" title="${escapeAttribute(item.item_name)} preview" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+      <div class="wishlist-preview-placeholder">
+        <strong>${escapeHtml(item.item_name)}</strong>
+        <span>${escapeHtml(getUrlHost(item.item_url))}</span>
+      </div>
+      <div class="wishlist-preview-fallback">
+        <span>${escapeHtml(getUrlHost(item.item_url))}</span>
+        <span>Open item</span>
+      </div>
+    </a>
+    <div class="wishlist-card-copy">
+      ${renderWishlistPersonTags(item.added_by)}
+      <h3>${escapeHtml(item.item_name)}</h3>
+      <a class="wishlist-open-link" href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer">Open link</a>
+      ${item.purchased ? "<span class=\"wishlist-badge\">Gotten</span>" : ""}
+    </div>
+  `;
+  const iframe = card.querySelector("iframe");
+  const preview = card.querySelector(".wishlist-preview");
+  let canRevealPreview = true;
+  iframe.addEventListener("load", () => {
+    if (canRevealPreview) {
+      preview.classList.add("has-preview");
+    }
+  });
+  window.setTimeout(() => {
+    canRevealPreview = false;
+    if (!preview.classList.contains("has-preview")) {
+      preview.classList.add("is-preview-blocked");
+    }
+  }, 1000);
+  return card;
+}
+
+function renderWishlistPersonTags(addedBy) {
+  const active = normalizeWishlistPerson(addedBy);
+  return `
+    <div class="wishlist-person-tags" aria-label="Added by ${escapeAttribute(active)}">
+      <span class="wishlist-person-tag ${active === "Sophia" ? "is-active" : ""}">Sophia</span>
+      <span class="wishlist-person-tag ${active === "Calvin" ? "is-active" : ""}">Calvin</span>
+    </div>
+  `;
+}
+
+function getUrlHost(url) {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return "Open link";
+  }
+}
+
+function setWishlistTab(tabName) {
+  elements.wishlistTabs.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.wishlistTab === tabName);
+  });
+  elements.wishlistPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.wishlistPanel === tabName);
+  });
+}
+
+async function addWishlistItem(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const nameInput = form.querySelector("input[type='text']");
+  const urlInput = form.querySelector("input[type='url']");
+  const addedBy = normalizeWishlistPerson(form.dataset.wishlistAddedBy);
+  const name = nameInput.value.trim();
+  const url = urlInput.value.trim();
+
+  if (!name || !/^https?:\/\//i.test(url)) {
+    showToast("Wishlist item needs a link", "Use an item name and a full https:// URL.");
+    return;
+  }
+
+  const localItem = {
+    id: crypto.randomUUID?.() || `wish-${Date.now()}`,
+    page_id: PAGE_ID,
+    item_name: name,
+    item_url: url,
+    added_by: addedBy,
+    purchased: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const remote = await addRemoteWishlistItem(localItem);
+  const item = normalizeWishlistItems([remote.item || localItem])[0];
+  state.wishlist = [item, ...state.wishlist.filter((wish) => wish.id !== item.id)];
+  saveWishlistItems();
+  renderWishlist();
+  form.reset();
+  setWishlistTab("list");
+  showToast(`${addedBy} wish added`, remote.saved ? "Saved to the shared wishlist." : "Saved in this browser.");
+}
+
+async function toggleWishlistPurchased(itemId, purchased) {
+  const item = state.wishlist.find((wish) => wish.id === itemId);
+  if (!item) {
+    return;
+  }
+
+  item.purchased = purchased;
+  item.updated_at = new Date().toISOString();
+  saveWishlistItems();
+  renderWishlist();
+  await updateRemoteWishlistItem(item);
 }
 
 function getLoveLotteryCompletionCount() {
@@ -1454,7 +1731,7 @@ function resetLoveLotteryProgress() {
 
 function renderMusic() {
   const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
-  const tracks = getMusicTracks();
+  const tracks = getActiveMusicTracks();
   const wasPlaying = !elements.musicAudio.paused;
 
   if (tracks.length) {
@@ -1477,24 +1754,67 @@ function renderMusic() {
     elements.musicTrackLabel.textContent = "No track";
   }
 
-  const volume = clampNumber(Number(music.volume), 0, 1, DEFAULT_DATA.music.volume);
+  const activeTrack = tracks[state.activeTrackIndex];
+  const volume = clampNumber(Number(activeTrack?.volume ?? music.volume), 0, 1, DEFAULT_DATA.music.volume);
   elements.musicAudio.volume = volume;
   elements.volumeInput.value = String(volume);
   updateMusicButtons();
 }
 
+function getActiveMusicTracks() {
+  return state.activeScreen === "wishlist" ? getWishlistMusicTracks() : getMusicTracks();
+}
+
 function getMusicTracks() {
-  return normalizeMusic(state.data.music, DEFAULT_DATA.music).tracks.filter((track) => track.url);
+  const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+  return music.tracks
+    .filter((track) => track.url)
+    .map((track, index) => ({
+      ...track,
+      name: track.name || `Constellation song ${index + 1}`,
+      volume: music.volume,
+    }));
+}
+
+function getWishlistMusicTracks() {
+  const constellationTracks = getMusicTracks();
+  const loveLotterySettings = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+  const loveLotteryTrack = loveLotterySettings.music.url
+    ? [{
+        url: loveLotterySettings.music.url,
+        name: loveLotterySettings.music.name || "Love Lottery song",
+        volume: loveLotterySettings.music.volume,
+      }]
+    : [];
+
+  return [...constellationTracks, ...loveLotteryTrack];
 }
 
 function playNextMusicTrack() {
-  const tracks = getMusicTracks();
+  const tracks = getActiveMusicTracks();
   if (!tracks.length) {
     updateMusicButtons();
     return;
   }
 
   state.activeTrackIndex = (state.activeTrackIndex + 1) % tracks.length;
+  renderMusic();
+  elements.musicAudio.play().catch(() => updateMusicButtons());
+}
+
+function playWishlistMusic({ randomize = false } = {}) {
+  const tracks = getWishlistMusicTracks();
+  if (!tracks.length) {
+    renderMusic();
+    return;
+  }
+
+  if (randomize) {
+    state.activeTrackIndex = Math.floor(Math.random() * tracks.length);
+  } else if (!tracks[state.activeTrackIndex]) {
+    state.activeTrackIndex = 0;
+  }
+
   renderMusic();
   elements.musicAudio.play().catch(() => updateMusicButtons());
 }
@@ -1991,6 +2311,7 @@ function hexToRgba(hex, alpha) {
 function showScreen(name) {
   const screens = {
     dashboard: elements.dashboardScreen,
+    wishlist: elements.wishlistScreen,
     randomizer: elements.randomizerScreen,
     landing: elements.landingScreen,
     opening: elements.openingScreen,
@@ -2005,6 +2326,14 @@ function showScreen(name) {
 
   state.activeScreen = name;
   document.body.dataset.screen = name;
+
+  if (name === "wishlist") {
+    renderMusic();
+  }
+
+  if ((name === "dashboard" || name === "randomizer") && elements.musicAudio && !elements.musicAudio.paused) {
+    elements.musicAudio.pause();
+  }
 
   if (name !== "randomizer" && elements.loveLotteryAudio && !elements.loveLotteryAudio.paused) {
     elements.loveLotteryAudio.pause();
@@ -2773,8 +3102,25 @@ function setAdminTab(tabName) {
 
 function bindEvents() {
   elements.openSophiaPageButton.addEventListener("click", () => navigateTo("/forsophia"));
+  elements.openWishlistButton.addEventListener("click", () => {
+    navigateTo("/wishlist");
+    playWishlistMusic({ randomize: true });
+  });
+  elements.wishlistHomeButton.addEventListener("click", () => navigateTo("/"));
+  elements.wishlistTabs.forEach((button) => {
+    button.addEventListener("click", () => setWishlistTab(button.dataset.wishlistTab));
+  });
+  elements.wishlistForms.forEach((form) => {
+    form.addEventListener("submit", addWishlistItem);
+  });
+  elements.wishlistCalvinList.addEventListener("change", (event) => {
+    if (event.target.matches("[data-wishlist-purchased]")) {
+      void toggleWishlistPurchased(event.target.dataset.wishlistPurchased, event.target.checked);
+    }
+  });
   elements.openRandomizerButton.addEventListener("click", () => {
     navigateTo("/love-lottery");
+    elements.musicAudio.pause();
     renderLoveLotteryMusic();
     playLoveLotteryMusic();
   });

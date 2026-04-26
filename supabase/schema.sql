@@ -63,6 +63,59 @@ to authenticated
 using ((select auth.uid()) is not null and owner_id = (select auth.uid()))
 with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
 
+create table if not exists public.wishlist_items (
+  id uuid primary key default gen_random_uuid(),
+  page_id text not null,
+  item_name text not null,
+  item_url text not null,
+  added_by text not null default 'Sophia' check (added_by in ('Sophia', 'Calvin')),
+  purchased boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.wishlist_items
+add column if not exists added_by text not null default 'Sophia';
+
+alter table public.wishlist_items
+drop constraint if exists wishlist_items_added_by_check;
+
+alter table public.wishlist_items
+add constraint wishlist_items_added_by_check
+check (added_by in ('Sophia', 'Calvin'));
+
+alter table public.wishlist_items enable row level security;
+
+drop policy if exists "Public can read wishlist items" on public.wishlist_items;
+create policy "Public can read wishlist items"
+on public.wishlist_items
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "Public can add wishlist items" on public.wishlist_items;
+create policy "Public can add wishlist items"
+on public.wishlist_items
+for insert
+to anon, authenticated
+with check (
+  length(trim(item_name)) between 1 and 120
+  and item_url ~* '^https?://'
+  and added_by in ('Sophia', 'Calvin')
+);
+
+drop policy if exists "Public can update wishlist items" on public.wishlist_items;
+create policy "Public can update wishlist items"
+on public.wishlist_items
+for update
+to anon, authenticated
+using (true)
+with check (
+  length(trim(item_name)) between 1 and 120
+  and item_url ~* '^https?://'
+  and added_by in ('Sophia', 'Calvin')
+);
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'constellation-media',

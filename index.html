@@ -28,7 +28,69 @@
               <span class="dashboard-tile-title">Today Picker</span>
               <span class="dashboard-tile-copy">Spin one cute thing for us to do together today.</span>
             </button>
+            <button id="openWishlistButton" class="dashboard-tile dashboard-tile-wishlist" type="button">
+              <span class="dashboard-tile-kicker">Wish List</span>
+              <span class="dashboard-tile-title">Little Wants</span>
+              <span class="dashboard-tile-copy">Save gift links, peek at them, and track what has been gotten.</span>
+            </button>
           </div>
+        </div>
+      </section>
+
+      <section id="wishlistScreen" class="screen wishlist-screen" aria-labelledby="wishlistTitle">
+        <div class="wishlist-shell">
+          <header class="wishlist-header">
+            <button id="wishlistHomeButton" class="icon-button" type="button" aria-label="Back to dashboard">
+              <span aria-hidden="true">&lt;</span>
+            </button>
+            <div>
+              <p class="overline">Wish List</p>
+              <h1 id="wishlistTitle">Little Wants</h1>
+            </div>
+          </header>
+
+          <div class="wishlist-tabs" role="tablist" aria-label="Wishlist views">
+            <button class="wishlist-tab is-active" type="button" data-wishlist-tab="sophia">Sophia</button>
+            <button class="wishlist-tab" type="button" data-wishlist-tab="calvin">Calvin</button>
+            <button class="wishlist-tab" type="button" data-wishlist-tab="list">List</button>
+          </div>
+
+          <section class="wishlist-panel is-active" data-wishlist-panel="sophia" aria-label="Add wish item">
+            <form id="wishlistSophiaForm" class="wishlist-form" data-wishlist-added-by="Sophia">
+              <label>
+                Item name
+                <input id="wishlistSophiaNameInput" type="text" maxlength="120" placeholder="Soft sweater, perfume, headphones..." required>
+              </label>
+              <label>
+                Link
+                <input id="wishlistSophiaUrlInput" type="url" placeholder="https://..." required>
+              </label>
+              <button class="primary-button" type="submit">Add item</button>
+            </form>
+          </section>
+
+          <section class="wishlist-panel" data-wishlist-panel="calvin" aria-label="Calvin wishlist tools">
+            <form id="wishlistCalvinForm" class="wishlist-form" data-wishlist-added-by="Calvin">
+              <label>
+                Item name
+                <input id="wishlistCalvinNameInput" type="text" maxlength="120" placeholder="Flowers, dinner place, a tiny surprise..." required>
+              </label>
+              <label>
+                Link
+                <input id="wishlistCalvinUrlInput" type="url" placeholder="https://..." required>
+              </label>
+              <button class="primary-button" type="submit">Add item</button>
+            </form>
+            <div class="wishlist-panel-heading">
+              <p class="overline">For Calvin</p>
+              <h2>Mark what is gotten</h2>
+            </div>
+            <div id="wishlistCalvinList" class="wishlist-check-list"></div>
+          </section>
+
+          <section class="wishlist-panel" data-wishlist-panel="list" aria-label="Wish list">
+            <div id="wishlistList" class="wishlist-grid"></div>
+          </section>
         </div>
       </section>
 
