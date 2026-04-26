@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   data: "sophiaConstellation:data",
   progress: "sophiaConstellation:progress",
   layout: "sophiaConstellation:layout",
+  loveLottery: "sophiaConstellation:loveLottery",
 };
 
 const LEGACY_DEFAULT_SUBTITLE = "I made something for you.\nNo expectations - just memories.";
@@ -30,8 +31,11 @@ const DEFAULT_DATA = {
     volume: 0.35,
   },
   soundEffects: {
-    starHover: { url: "", name: "", volume: 0.28 },
-    starClick: { url: "", name: "", volume: 0.42 },
+    starHover: { url: "", name: "", volume: 0.35 },
+    starClick: { url: "", name: "", volume: 0.35 },
+  },
+  loveLottery: {
+    music: { url: "", name: "", volume: 0.35 },
   },
   letter: {
     title: "A letter",
@@ -303,14 +307,103 @@ const OPENING_SEQUENCE = [
   },
 ];
 
+const SHOPPING_ACTIVITIES = [
+  "Go shopping together with a tiny treat budget",
+  "Shop for clothes and pick one outfit for each other",
+  "Do a cozy grocery shopping trip for tonight's dinner",
+  "Find a small gift for my baby",
+  "Visit a bookstore and choose a book for each other",
+  "Pick out matching socks or pajamas",
+  "Buy ingredients for a dessert we have never made",
+  "Choose a candle or room spray for our space",
+  "Browse a thrift store and find the cutest item",
+  "Pick one new snack from every aisle we visit",
+  "Shop for flowers and build a little bouquet",
+  "Choose a framed photo or print for our room",
+  "Find a silly kitchen tool we would actually use",
+  "Buy supplies for a mini craft night",
+  "Pick a surprise drink for each other",
+];
+
+const LOVE_LOTTERY_ACTIONS = [
+  (task) => `Do this for Sophia today: ${task}`,
+  (task) => `Make her day easier by choosing to ${task}`,
+  (task) => `Show love through action: ${task}`,
+  (task) => `Take one thing off her plate: ${task}`,
+  (task) => `Make the space feel calmer: ${task}`,
+  (task) => `Do this without being asked: ${task}`,
+  (task) => `Prepare a little care moment: ${task}`,
+  (task) => `Be thoughtful and ${task}`,
+  (task) => `Make today softer by doing this: ${task}`,
+  (task) => `Handle a small responsibility: ${task}`,
+  (task) => `Leave proof of love by doing this: ${task}`,
+];
+
+const LOVE_LOTTERY_THEMES = [
+  "wash the dishes or clear the sink",
+  "wipe down the kitchen counters",
+  "take out the trash and replace the bag",
+  "fold a laundry load neatly",
+  "start a laundry load before it piles up",
+  "make the bed extra nicely",
+  "tidy the room for ten focused minutes",
+  "clear the car of cups, wrappers, and clutter",
+  "prep a simple breakfast or snack",
+  "make her a drink exactly how she likes it",
+  "refill her water and remind her gently",
+  "pack or prep something she needs tomorrow",
+  "charge her phone or device if it is low",
+  "warm up or plate food for her",
+  "plan dinner before she has to ask",
+  "handle one errand she has been avoiding",
+  "check whether she needs anything from the store",
+  "organize one messy drawer, shelf, or surface",
+  "restock something useful before it runs out",
+  "clean the bathroom mirror or sink",
+  "sweep or vacuum one shared area",
+  "put fresh towels out",
+  "light a candle and reset the room",
+  "write a short note naming one thing you appreciate",
+  "send a thoughtful check-in message",
+  "ask what would make her day easier and do it",
+  "give her twenty quiet minutes to rest",
+  "handle the next small decision for both of you",
+  "set out a cozy blanket or pillow",
+  "prepare a comfort snack plate",
+  "rub her shoulders or hands for five minutes",
+  "make a small apology or thank-you specific",
+  "look up one solution to something stressing her",
+  "set a reminder for something important to her",
+  "do one task she normally carries alone",
+];
+
+const DATE_PLAN_IDEAS = [
+  "sunset picnic", "cozy movie night", "coffee shop morning", "bookstore date", "museum afternoon",
+  "farmers market walk", "beach sunset", "park picnic", "arcade night", "dessert crawl",
+  "fancy dinner", "home pasta night", "mini road trip", "photo booth date", "paint night",
+  "ice cream walk", "brunch date", "garden stroll", "candlelit dinner", "breakfast in bed",
+  "boba and board games", "thrift store challenge", "rooftop view night", "aquarium day", "spa night at home",
+];
+
+const DATE_PREP_TASKS = [
+  "pick the day and time",
+  "choose one outfit idea",
+  "save one place to go",
+  "write Sophia a tiny invite",
+];
+
+const LOVE_LOTTERY_ACTIVITIES = buildLoveLotteryActivities();
+
 const state = {
   data: loadData(),
   progress: loadProgress(),
+  loveLottery: loadLoveLotteryProgress(),
   session: null,
   remoteReady: false,
   remoteMessage: "",
-  activeScreen: "landing",
+  activeScreen: getScreenForPath(),
   previousScreen: "constellation",
+  selectedActivityId: null,
   activeMemoryId: null,
   activeMediaIndex: 0,
   albumIndex: 0,
@@ -318,6 +411,7 @@ const state = {
   openingIndex: 0,
   openingTimer: null,
   audioUnlocked: false,
+  shuffleTimer: null,
   soundEffectPlayers: {
     starHover: null,
     starClick: null,
@@ -333,6 +427,29 @@ const state = {
 const elements = {
   ambientCanvas: document.querySelector("#ambientCanvas"),
   loveTrailCanvas: document.querySelector("#loveTrailCanvas"),
+  dashboardScreen: document.querySelector("#dashboardScreen"),
+  randomizerScreen: document.querySelector("#randomizerScreen"),
+  openSophiaPageButton: document.querySelector("#openSophiaPageButton"),
+  openRandomizerButton: document.querySelector("#openRandomizerButton"),
+  randomizerHomeButton: document.querySelector("#randomizerHomeButton"),
+  heartPhotoFrame: document.querySelector("#heartPhotoFrame"),
+  randomizerStage: document.querySelector("#randomizerStage"),
+  randomizerResult: document.querySelector("#randomizerResult"),
+  randomizerTask: document.querySelector("#randomizerTask"),
+  openActivityListButton: document.querySelector("#openActivityListButton"),
+  activityListModal: document.querySelector("#activityListModal"),
+  spinDateButton: document.querySelector("#spinDateButton"),
+  markDateButton: document.querySelector("#markDateButton"),
+  resetDateButton: document.querySelector("#resetDateButton"),
+  activityCount: document.querySelector("#activityCount"),
+  activityList: document.querySelector("#activityList"),
+  loveProgressCount: document.querySelector("#loveProgressCount"),
+  loveProgressNext: document.querySelector("#loveProgressNext"),
+  loveProgressTrack: document.querySelector("#loveProgressTrack"),
+  loveProgressFill: document.querySelector("#loveProgressFill"),
+  loveProgressStars: document.querySelector("#loveProgressStars"),
+  nextDateLog: document.querySelector("#nextDateLog"),
+  loveLotteryAudio: document.querySelector("#loveLotteryAudio"),
   landingScreen: document.querySelector("#landingScreen"),
   openingScreen: document.querySelector("#openingScreen"),
   constellationScreen: document.querySelector("#constellationScreen"),
@@ -428,6 +545,12 @@ const elements = {
   importJsonInput: document.querySelector("#importJsonInput"),
   resetProgressButton: document.querySelector("#resetProgressButton"),
   resetDataButton: document.querySelector("#resetDataButton"),
+  adminTabs: Array.from(document.querySelectorAll("[data-admin-tab]")),
+  adminTabPanels: Array.from(document.querySelectorAll("[data-admin-panel]")),
+  loveLotteryMusicStatus: document.querySelector("#loveLotteryMusicStatus"),
+  loveLotteryMusicInput: document.querySelector("#loveLotteryMusicInput"),
+  loveLotteryMusicVolume: document.querySelector("#loveLotteryMusicVolume"),
+  clearLoveLotteryMusicButton: document.querySelector("#clearLoveLotteryMusicButton"),
   toastHost: document.querySelector("#toastHost"),
 };
 
@@ -462,7 +585,8 @@ function normalizeData(data) {
     unlockThreshold: Number(data.unlockThreshold) || fallback.unlockThreshold,
     puzzleImage: data.puzzleImage || "",
     music: normalizeMusic(data.music, fallback.music),
-    soundEffects: normalizeSoundEffects(data.soundEffects, fallback.soundEffects),
+    soundEffects: normalizeSoundEffects(data.soundEffects, fallback.soundEffects, normalizeMusic(data.music, fallback.music).volume),
+    loveLottery: normalizeLoveLotterySettings(data.loveLottery, fallback.loveLottery),
     letter: {
       ...fallback.letter,
       ...(data.letter || {}),
@@ -535,17 +659,19 @@ function updateStarterMemoryCopy(memories, starterMemories) {
   });
 }
 
-function normalizeSoundEffects(soundEffects, fallbackSoundEffects) {
+function normalizeSoundEffects(soundEffects, fallbackSoundEffects, defaultVolume = DEFAULT_DATA.music.volume) {
+  const fallbackVolume = clampNumber(Number(defaultVolume), 0, 1, DEFAULT_DATA.music.volume);
+
   return {
     starHover: {
       ...fallbackSoundEffects.starHover,
       ...(soundEffects?.starHover || {}),
-      volume: clampNumber(Number(soundEffects?.starHover?.volume), 0, 1, fallbackSoundEffects.starHover.volume),
+      volume: clampNumber(Number(soundEffects?.starHover?.volume), 0, 1, fallbackVolume),
     },
     starClick: {
       ...fallbackSoundEffects.starClick,
       ...(soundEffects?.starClick || {}),
-      volume: clampNumber(Number(soundEffects?.starClick?.volume), 0, 1, fallbackSoundEffects.starClick.volume),
+      volume: clampNumber(Number(soundEffects?.starClick?.volume), 0, 1, fallbackVolume),
     },
   };
 }
@@ -568,6 +694,20 @@ function normalizeMusic(music, fallbackMusic) {
   return {
     tracks: normalizedTracks,
     volume: clampNumber(Number(music?.volume), 0, 1, fallbackMusic.volume),
+  };
+}
+
+function normalizeLoveLotterySettings(settings, fallbackSettings) {
+  return {
+    ...fallbackSettings,
+    ...(settings || {}),
+    music: {
+      ...fallbackSettings.music,
+      ...(settings?.music || {}),
+      url: settings?.music?.url || "",
+      name: settings?.music?.name || "",
+      volume: clampNumber(Number(settings?.music?.volume), 0, 1, fallbackSettings.music.volume),
+    },
   };
 }
 
@@ -619,6 +759,70 @@ function loadProgress() {
   }
 }
 
+function loadLoveLotteryProgress() {
+  const stored = localStorage.getItem(STORAGE_KEYS.loveLottery);
+  if (!stored) {
+    return normalizeLoveLotteryProgress();
+  }
+
+  try {
+    return normalizeLoveLotteryProgress(JSON.parse(stored));
+  } catch {
+    return normalizeLoveLotteryProgress();
+  }
+}
+
+function saveLoveLotteryProgress() {
+  state.loveLottery = normalizeLoveLotteryProgress(state.loveLottery);
+  localStorage.setItem(STORAGE_KEYS.loveLottery, JSON.stringify(state.loveLottery));
+  void saveRemoteLoveLotteryProgress();
+}
+
+function normalizeLoveLotteryProgress(progress = {}) {
+  const markedIds = Array.isArray(progress.markedIds) ? progress.markedIds : [];
+  return {
+    markedIds,
+    completionCount: clampNumber(Number(progress.completionCount), 0, 500, markedIds.length),
+    log: Array.isArray(progress.log) ? progress.log : [],
+    nextDatePlan: progress.nextDatePlan || null,
+  };
+}
+
+function buildLoveLotteryActivities() {
+  const generated = [];
+  LOVE_LOTTERY_ACTIONS.forEach((action) => {
+    LOVE_LOTTERY_THEMES.forEach((theme) => {
+      generated.push(action(theme));
+    });
+  });
+
+  const dateActivities = buildDatePlanActivities();
+  const everydayActivities = generated.slice(0, 500 - SHOPPING_ACTIVITIES.length - dateActivities.length).map((label, index) => ({
+    id: `daily-${index + 1}`,
+    label,
+    category: "daily",
+  }));
+
+  const shoppingActivities = SHOPPING_ACTIVITIES.map((label, index) => ({
+    id: `shopping-${index + 1}`,
+    label,
+    category: "shopping",
+  }));
+
+  return [...shoppingActivities, ...dateActivities, ...everydayActivities];
+}
+
+function buildDatePlanActivities() {
+  return DATE_PLAN_IDEAS.flatMap((idea, ideaIndex) =>
+    DATE_PREP_TASKS.map((task, taskIndex) => ({
+      id: `date-${ideaIndex + 1}-${taskIndex + 1}`,
+      label: `Plan a ${idea} for Sophia: ${task}`,
+      task: `Small task today: ${task}.`,
+      category: "date",
+    }))
+  );
+}
+
 function saveData() {
   localStorage.setItem(STORAGE_KEYS.data, JSON.stringify(state.data));
 }
@@ -653,12 +857,14 @@ function inferMediaType(url = "") {
 async function init() {
   configureAdminVisibility();
   renderApp();
+  renderLoveLottery();
   renderAdminForm();
   renderAdminAuth();
   initReveal();
   bindEvents();
   initAmbientCanvas();
   initLoveTrail();
+  handleRouteChange();
 
   if (SUPABASE_CONFIGURED) {
     await initSupabase();
@@ -677,6 +883,31 @@ function isAdminRoute() {
   return window.location.pathname.replace(/\/+$/, "") === "/admin";
 }
 
+function getNormalizedPath() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
+}
+
+function getScreenForPath() {
+  const path = getNormalizedPath();
+  if (path === "/forsophia" || path === "/admin") {
+    return "landing";
+  }
+  if (path === "/love-lottery") {
+    return "randomizer";
+  }
+  return "dashboard";
+}
+
+function navigateTo(path) {
+  window.history.pushState({}, "", path);
+  handleRouteChange();
+}
+
+function handleRouteChange() {
+  stopOpeningSequence();
+  showScreen(getScreenForPath());
+}
+
 async function initSupabase() {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
@@ -691,6 +922,7 @@ async function initSupabase() {
   });
 
   await loadRemoteData();
+  await loadRemoteLoveLotteryProgress();
   renderAdminAuth();
 }
 
@@ -755,6 +987,55 @@ async function saveRemoteData() {
   return { saved: true };
 }
 
+async function loadRemoteLoveLotteryProgress() {
+  if (!SUPABASE_CONFIGURED) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("love_lottery_progress")
+    .select("progress")
+    .eq("page_id", PAGE_ID)
+    .maybeSingle();
+
+  if (error) {
+    state.remoteMessage = `Love Lottery progress load failed: ${error.message}`;
+    renderAdminAuth();
+    return;
+  }
+
+  if (data?.progress) {
+    state.loveLottery = normalizeLoveLotteryProgress(data.progress);
+    localStorage.setItem(STORAGE_KEYS.loveLottery, JSON.stringify(state.loveLottery));
+    renderLoveLottery();
+  }
+}
+
+async function saveRemoteLoveLotteryProgress() {
+  if (!SUPABASE_CONFIGURED || !state.session?.user?.id) {
+    return { saved: false, reason: "Sign in before saving Love Lottery progress online." };
+  }
+
+  const payload = {
+    page_id: PAGE_ID,
+    owner_id: state.session.user.id,
+    progress: normalizeLoveLotteryProgress(state.loveLottery),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("love_lottery_progress")
+    .upsert(payload, { onConflict: "page_id" });
+
+  if (error) {
+    state.remoteMessage = `Love Lottery progress save failed: ${error.message}`;
+    renderAdminAuth();
+    return { saved: false, reason: error.message };
+  }
+
+  return { saved: true };
+}
+
 function renderAdminAuth() {
   if (!elements.adminSupabaseStatus) {
     return;
@@ -789,11 +1070,358 @@ function renderApp() {
   elements.landingTitle.textContent = state.data.title;
   elements.landingSubtext.innerHTML = escapeHtml(state.data.subtitle).replace(/\n/g, "<br>");
   renderMusic();
+  renderLoveLotteryMusic();
   prepareSoundEffectPlayers();
+  renderHeartPhotoFrame();
   renderStars();
   renderLines();
   renderProgress();
   renderLetter();
+}
+
+function renderHeartPhotoFrame() {
+  const photos = getLoveLotteryPhotos();
+  const points = getHeartTilePoints();
+
+  elements.heartPhotoFrame.innerHTML = "";
+  points.forEach((point, index) => {
+    const photo = photos[index % photos.length];
+    const tile = document.createElement("span");
+    tile.className = "heart-photo-tile";
+    tile.style.left = `${point.x}%`;
+    tile.style.top = `${point.y}%`;
+    tile.style.setProperty("--tile-rotation", `${point.rotation}deg`);
+    tile.style.setProperty("--tile-delay", `${(index % 10) * 0.8}s`);
+    tile.style.setProperty("--tile-accent", photo.accent);
+
+    if (photo.url) {
+      const image = document.createElement("img");
+      image.src = photo.url;
+      image.alt = "";
+      tile.append(image);
+    }
+
+    elements.heartPhotoFrame.append(tile);
+  });
+}
+
+function getLoveLotteryPhotos() {
+  const accents = ["#f6a6ba", "#f3d386", "#94d7e4", "#9582f2"];
+  const memoryPhotos = state.data.memories
+    .flatMap((memory) => normalizeMemoryMedia(memory))
+    .filter((item) => item.type !== "video" && item.url)
+    .map((item, index) => ({ url: item.url, accent: accents[index % accents.length] }));
+  const letterPhotos = normalizeLetterPhotos(state.data.letter?.photos, DEFAULT_DATA.letter.photos)
+    .filter((photo) => photo.url)
+    .map((photo, index) => ({ url: photo.url, accent: accents[(index + memoryPhotos.length) % accents.length] }));
+  const photos = [...memoryPhotos, ...letterPhotos];
+
+  if (photos.length) {
+    return photos;
+  }
+
+  return accents.map((accent) => ({ url: "", accent }));
+}
+
+function getHeartTilePoints() {
+  if (window.matchMedia("(max-width: 760px)").matches) {
+    return [
+      { x: 29, y: 15, rotation: -13 },
+      { x: 45, y: 20, rotation: 7 },
+      { x: 55, y: 20, rotation: -7 },
+      { x: 71, y: 15, rotation: 13 },
+      { x: 18, y: 33, rotation: -8 },
+      { x: 82, y: 33, rotation: 8 },
+      { x: 24, y: 51, rotation: 7 },
+      { x: 76, y: 51, rotation: -7 },
+      { x: 31, y: 61, rotation: -5 },
+      { x: 69, y: 61, rotation: 5 },
+      { x: 39, y: 70, rotation: -8 },
+      { x: 61, y: 70, rotation: 8 },
+    ];
+  }
+
+  return [
+    { x: 31, y: 24, rotation: -12 },
+    { x: 47, y: 21, rotation: 6 },
+    { x: 53, y: 21, rotation: -6 },
+    { x: 69, y: 24, rotation: 12 },
+    { x: 22, y: 40, rotation: 8 },
+    { x: 78, y: 40, rotation: -8 },
+    { x: 27, y: 59, rotation: -6 },
+    { x: 73, y: 59, rotation: 6 },
+    { x: 34, y: 68, rotation: -5 },
+    { x: 66, y: 68, rotation: 5 },
+    { x: 39, y: 76, rotation: 10 },
+    { x: 61, y: 76, rotation: -10 },
+  ];
+}
+
+function renderLoveLottery() {
+  const marked = new Set(state.loveLottery.markedIds);
+  const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => activity.category === "shopping" || !marked.has(activity.id));
+  const completedCount = getLoveLotteryCompletionCount();
+  const total = LOVE_LOTTERY_ACTIVITIES.length;
+
+  elements.activityCount.textContent = `${completedCount} / ${total} progress`;
+  elements.markDateButton.disabled =
+    !state.selectedActivityId ||
+    (marked.has(state.selectedActivityId) && getLoveLotteryActivity(state.selectedActivityId)?.category !== "shopping");
+  renderLoveLotteryProgress(completedCount, total);
+  renderNextDateLog();
+  if (!state.selectedActivityId) {
+    elements.randomizerResult.textContent = formatLoveLotteryDate();
+    elements.randomizerTask.hidden = true;
+    elements.randomizerTask.textContent = "";
+  }
+
+  elements.activityList.innerHTML = "";
+  LOVE_LOTTERY_ACTIVITIES.forEach((activity) => {
+    const row = document.createElement("button");
+    row.className = "activity-row";
+    row.type = "button";
+    row.dataset.activityId = activity.id;
+    row.classList.toggle("is-marked", marked.has(activity.id));
+    row.classList.toggle("is-selected", state.selectedActivityId === activity.id);
+
+    const label = document.createElement("span");
+    label.textContent = activity.label;
+    const tag = document.createElement("span");
+    tag.className = "activity-tag";
+    tag.textContent = activity.category === "shopping" ? "shopping" : activity.category === "date" ? "date" : "daily";
+
+    row.append(label, tag);
+    elements.activityList.append(row);
+  });
+}
+
+function getLoveLotteryCompletionCount() {
+  const markedDailyCount = state.loveLottery.markedIds
+    .map((id) => getLoveLotteryActivity(id))
+    .filter((activity) => activity?.category !== "shopping").length;
+  const storedCount = clampNumber(Number(state.loveLottery.completionCount), 0, 500, markedDailyCount);
+  return Math.max(storedCount, markedDailyCount);
+}
+
+function getLoveLotteryActivity(activityId) {
+  return LOVE_LOTTERY_ACTIVITIES.find((activity) => activity.id === activityId);
+}
+
+function formatLoveLotteryDate(date = new Date()) {
+  return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
+
+function getFutureDatePlan(activity) {
+  const weeks = Math.random() < 0.5 ? 1 : 2;
+  const date = new Date();
+  date.setDate(date.getDate() + weeks * 7);
+  return {
+    id: activity.id,
+    label: activity.label,
+    task: activity.task,
+    weeks,
+    scheduledFor: date.toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function formatDatePlan(plan) {
+  const date = new Date(plan.scheduledFor);
+  return `${plan.label} in ${plan.weeks} ${plan.weeks === 1 ? "week" : "weeks"} (${formatLoveLotteryDate(date)})`;
+}
+
+function renderNextDateLog() {
+  const plan = state.loveLottery.nextDatePlan;
+  if (!plan?.scheduledFor) {
+    elements.nextDateLog.hidden = true;
+    elements.nextDateLog.textContent = "";
+    return;
+  }
+
+  elements.nextDateLog.hidden = false;
+  elements.nextDateLog.innerHTML = `
+    <span>Next date</span>
+    <strong>${escapeHtml(formatDatePlan(plan))}</strong>
+    <em>${escapeHtml(plan.task || "")}</em>
+  `;
+}
+
+function renderLoveLotteryProgress(completedCount, total) {
+  const clamped = clampNumber(completedCount, 0, total, 0);
+  const nextStar = Math.min(total, Math.ceil((clamped + 1) / 30) * 30);
+  elements.loveProgressCount.textContent = `${clamped} / ${total}`;
+  elements.loveProgressNext.textContent = clamped >= total ? "Every star is full" : `Next: plan a date, trip, or gift for Sophia at ${nextStar}`;
+  elements.loveProgressFill.style.width = `${Math.max(0, (clamped / total) * elements.loveProgressStars.scrollWidth)}px`;
+  elements.loveProgressStars.innerHTML = "";
+
+  for (let milestone = 30; milestone <= total; milestone += 30) {
+    const milestoneBox = document.createElement("span");
+    milestoneBox.className = "love-progress-star";
+    milestoneBox.classList.toggle("is-complete", clamped >= milestone);
+    milestoneBox.title = getLoveLotteryMilestoneLabel(milestone);
+
+    const star = document.createElement("span");
+    star.className = "love-progress-star-icon";
+    star.textContent = "★";
+
+    const label = document.createElement("span");
+    label.className = "love-progress-star-label";
+    label.textContent = String(milestone);
+
+    milestoneBox.append(star, label);
+    elements.loveProgressStars.append(milestoneBox);
+  }
+
+  window.requestAnimationFrame(() => {
+    elements.loveProgressFill.style.width = `${Math.max(0, (clamped / total) * elements.loveProgressStars.scrollWidth)}px`;
+  });
+}
+
+function getLoveLotteryMilestoneLabel(milestone) {
+  return `${milestone}: Plan a date, trip, or gift for Sophia`;
+}
+
+function renderLoveLotteryMusic() {
+  const settings = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+  const music = settings.music;
+  const wasPlaying = !elements.loveLotteryAudio.paused;
+
+  elements.loveLotteryAudio.volume = music.volume;
+
+  if (!music.url) {
+    elements.loveLotteryAudio.removeAttribute("src");
+    elements.loveLotteryAudio.load();
+    return;
+  }
+
+  if (elements.loveLotteryAudio.src !== music.url) {
+    elements.loveLotteryAudio.src = music.url;
+    if (wasPlaying) {
+      elements.loveLotteryAudio.play().catch(() => {});
+    }
+  }
+}
+
+function playLoveLotteryMusic() {
+  if (!elements.loveLotteryAudio.src) {
+    return;
+  }
+
+  if (elements.loveLotteryAudio.paused) {
+    elements.loveLotteryAudio.play().catch(() => {});
+  }
+}
+
+function spinLoveLottery() {
+  const marked = new Set(state.loveLottery.markedIds);
+  const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => activity.category === "shopping" || !marked.has(activity.id));
+
+  if (!remaining.length) {
+    state.selectedActivityId = null;
+    elements.randomizerResult.textContent = "We marked every idea. Reset marks when we want a fresh jar.";
+    renderLoveLottery();
+    return;
+  }
+
+  if (state.shuffleTimer) {
+    window.clearInterval(state.shuffleTimer);
+    state.shuffleTimer = null;
+  }
+
+  elements.randomizerStage.classList.add("is-shuffling");
+  elements.spinDateButton.classList.add("is-spinning");
+  elements.spinDateButton.disabled = true;
+  elements.markDateButton.disabled = true;
+
+  state.shuffleTimer = window.setInterval(() => {
+    const preview = remaining[Math.floor(Math.random() * remaining.length)];
+    elements.randomizerResult.textContent = preview.label;
+  }, 82);
+
+  window.setTimeout(() => {
+    const selected = remaining[Math.floor(Math.random() * remaining.length)];
+    window.clearInterval(state.shuffleTimer);
+    state.shuffleTimer = null;
+    state.selectedActivityId = selected.id;
+    if (selected.category === "date") {
+      const plan = getFutureDatePlan(selected);
+      state.loveLottery.nextDatePlan = plan;
+      elements.randomizerResult.textContent = formatDatePlan(plan);
+      elements.randomizerTask.hidden = false;
+      elements.randomizerTask.textContent = plan.task;
+      saveLoveLotteryProgress();
+      renderNextDateLog();
+    } else {
+      elements.randomizerResult.textContent = selected.label;
+      elements.randomizerTask.hidden = true;
+      elements.randomizerTask.textContent = "";
+    }
+    elements.randomizerStage.classList.remove("is-shuffling");
+    elements.spinDateButton.classList.remove("is-spinning");
+    elements.spinDateButton.disabled = false;
+    renderLoveLottery();
+  }, 1250);
+}
+
+function markSelectedLoveLotteryActivity() {
+  const activity = getLoveLotteryActivity(state.selectedActivityId);
+  if (!state.selectedActivityId || !activity) {
+    return;
+  }
+
+  const currentCompletionCount = getLoveLotteryCompletionCount();
+  if (activity.category !== "shopping" && state.loveLottery.markedIds.includes(state.selectedActivityId)) {
+    return;
+  }
+
+  if (activity.category !== "shopping") {
+    state.loveLottery.markedIds = [...state.loveLottery.markedIds, state.selectedActivityId];
+  }
+
+  state.loveLottery.completionCount = clampNumber(currentCompletionCount + 1, 0, 500, currentCompletionCount);
+  state.loveLottery.log = [
+    ...(Array.isArray(state.loveLottery.log) ? state.loveLottery.log : []),
+    {
+      id: state.selectedActivityId,
+      label: activity.label,
+      category: activity.category,
+      nextDatePlan: activity.category === "date" ? state.loveLottery.nextDatePlan : null,
+      loggedAt: new Date().toISOString(),
+    },
+  ];
+  elements.randomizerResult.textContent = `Logged ${formatLoveLotteryDate()}`;
+  saveLoveLotteryProgress();
+  renderLoveLottery();
+}
+
+function toggleLoveLotteryActivity(activityId) {
+  const activity = getLoveLotteryActivity(activityId);
+  const currentCompletionCount = getLoveLotteryCompletionCount();
+  const marked = new Set(state.loveLottery.markedIds);
+  if (marked.has(activityId)) {
+    marked.delete(activityId);
+    if (activity?.category !== "shopping") {
+      state.loveLottery.completionCount = clampNumber(currentCompletionCount - 1, 0, 500, 0);
+    }
+  } else {
+    marked.add(activityId);
+    if (activity?.category !== "shopping") {
+      state.loveLottery.completionCount = clampNumber(currentCompletionCount + 1, 0, 500, currentCompletionCount);
+    }
+  }
+  state.loveLottery.markedIds = Array.from(marked);
+  saveLoveLotteryProgress();
+  renderLoveLottery();
+}
+
+function resetLoveLotteryProgress() {
+  state.loveLottery = { markedIds: [], completionCount: 0, log: [], nextDatePlan: null };
+  state.selectedActivityId = null;
+  elements.randomizerResult.textContent = formatLoveLotteryDate();
+  elements.randomizerTask.hidden = true;
+  elements.randomizerTask.textContent = "";
+  saveLoveLotteryProgress();
+  renderLoveLottery();
 }
 
 function renderMusic() {
@@ -844,7 +1472,8 @@ function playNextMusicTrack() {
 }
 
 function prepareSoundEffectPlayers() {
-  const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects);
+  const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+  const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, music.volume);
 
   Object.keys(state.soundEffectPlayers).forEach((key) => {
     const effect = soundEffects[key];
@@ -861,7 +1490,7 @@ function prepareSoundEffectPlayers() {
       state.soundEffectPlayers[key] = audio;
     }
 
-    state.soundEffectPlayers[key].volume = clampNumber(Number(effect.volume), 0, 1, DEFAULT_DATA.soundEffects[key].volume);
+    state.soundEffectPlayers[key].volume = clampNumber(Number(effect.volume), 0, 1, music.volume);
   });
 }
 
@@ -1333,6 +1962,8 @@ function hexToRgba(hex, alpha) {
 
 function showScreen(name) {
   const screens = {
+    dashboard: elements.dashboardScreen,
+    randomizer: elements.randomizerScreen,
     landing: elements.landingScreen,
     opening: elements.openingScreen,
     constellation: elements.constellationScreen,
@@ -1345,6 +1976,11 @@ function showScreen(name) {
   });
 
   state.activeScreen = name;
+  document.body.dataset.screen = name;
+
+  if (name !== "randomizer" && elements.loveLotteryAudio && !elements.loveLotteryAudio.paused) {
+    elements.loveLotteryAudio.pause();
+  }
 }
 
 function showLetter() {
@@ -1537,11 +2173,20 @@ function renderAdminForm() {
     ? `Saved songs: ${savedTracks.map((track, index) => track.name || `Song ${index + 1}`).join(", ")}`
     : "No saved music tracks.";
   elements.adminMusicVolume.value = String(music.volume);
+  renderLoveLotteryAdminForm();
   renderSoundLibraryForm();
   elements.adminLetterTitle.value = state.data.letter.title;
   elements.adminLetterBody.value = state.data.letter.body;
   renderLetterPhotoStatus();
   renderMemoryEditors();
+}
+
+function renderLoveLotteryAdminForm() {
+  const settings = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+  elements.loveLotteryMusicStatus.textContent = settings.music.url
+    ? `Saved music: ${settings.music.name || "Love Lottery music"}`
+    : "No Love Lottery music saved.";
+  elements.loveLotteryMusicVolume.value = String(settings.music.volume);
 }
 
 function renderLetterPhotoStatus() {
@@ -1615,7 +2260,8 @@ function renderMemoryEditors() {
 }
 
 function renderSoundLibraryForm() {
-  const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects);
+  const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+  const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, music.volume);
   const saved = [
     soundEffects.starHover.url ? `Hover: ${soundEffects.starHover.name || "saved sound"}` : "",
     soundEffects.starClick.url ? `Click: ${soundEffects.starClick.name || "saved sound"}` : "",
@@ -1624,7 +2270,24 @@ function renderSoundLibraryForm() {
   elements.soundLibraryStatus.textContent = saved.length ? saved.join(" | ") : "No star sound effects saved.";
   elements.soundEffectVolumeInputs.forEach((input) => {
     const key = input.dataset.sfxVolume;
-    input.value = String(soundEffects[key]?.volume ?? DEFAULT_DATA.soundEffects[key].volume);
+    input.value = String(soundEffects[key]?.volume ?? music.volume);
+  });
+}
+
+function syncDefaultSoundEffectVolumes(previousVolume, nextVolume) {
+  const previous = clampNumber(Number(previousVolume), 0, 1, DEFAULT_DATA.music.volume);
+  const next = clampNumber(Number(nextVolume), 0, 1, DEFAULT_DATA.music.volume);
+  state.data.soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, previous);
+
+  Object.keys(DEFAULT_DATA.soundEffects).forEach((key) => {
+    const effect = state.data.soundEffects[key];
+    if (!effect) {
+      return;
+    }
+
+    if (Math.abs(Number(effect.volume) - previous) < 0.001) {
+      effect.volume = next;
+    }
   });
 }
 
@@ -1636,11 +2299,18 @@ function syncAdminFieldsToData() {
     ...normalizeMusic(state.data.music, DEFAULT_DATA.music),
     volume: clampNumber(Number(elements.adminMusicVolume.value), 0, 1, DEFAULT_DATA.music.volume),
   };
-  state.data.soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects);
+  state.data.loveLottery = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+  state.data.loveLottery.music.volume = clampNumber(
+    Number(elements.loveLotteryMusicVolume.value),
+    0,
+    1,
+    DEFAULT_DATA.loveLottery.music.volume
+  );
+  state.data.soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, state.data.music.volume);
   elements.soundEffectVolumeInputs.forEach((input) => {
     const key = input.dataset.sfxVolume;
     if (state.data.soundEffects[key]) {
-      state.data.soundEffects[key].volume = clampNumber(Number(input.value), 0, 1, DEFAULT_DATA.soundEffects[key].volume);
+      state.data.soundEffects[key].volume = clampNumber(Number(input.value), 0, 1, state.data.music.volume);
     }
   });
   state.data.letter.title = elements.adminLetterTitle.value.trim() || DEFAULT_DATA.letter.title;
@@ -1947,6 +2617,35 @@ async function handleMusicInput(input) {
   }
 }
 
+async function handleLoveLotteryMusicInput(input) {
+  const file = input.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  try {
+    const media = await uploadMediaFile(file, "love-lottery-music");
+    if (media.mediaType !== "audio") {
+      showToast("Music needs audio", "Choose an MP3, WAV, OGG, AAC, or audio WebM file.");
+      return;
+    }
+
+    state.data.loveLottery = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+    state.data.loveLottery.music = {
+      url: media.url,
+      name: file.name,
+      volume: clampNumber(Number(elements.loveLotteryMusicVolume.value), 0, 1, DEFAULT_DATA.loveLottery.music.volume),
+    };
+    renderLoveLotteryMusic();
+    renderLoveLotteryAdminForm();
+    showToast("Love Lottery music added", "Save changes to publish this music online.");
+  } catch (error) {
+    showToast("Love Lottery upload failed", error.message);
+  } finally {
+    input.value = "";
+  }
+}
+
 async function handleSoundEffectInput(input) {
   const key = input.dataset.sfxInput;
   const file = input.files?.[0];
@@ -1961,12 +2660,13 @@ async function handleSoundEffectInput(input) {
       return;
     }
 
-    const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects);
+    const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+    const soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, music.volume);
     const volumeInput = elements.soundEffectVolumeInputs.find((item) => item.dataset.sfxVolume === key);
     soundEffects[key] = {
       url: media.url,
       name: file.name,
-      volume: clampNumber(Number(volumeInput?.value), 0, 1, DEFAULT_DATA.soundEffects[key].volume),
+      volume: clampNumber(Number(volumeInput?.value), 0, 1, music.volume),
     };
     state.data.soundEffects = soundEffects;
     prepareSoundEffectPlayers();
@@ -2031,7 +2731,53 @@ function resetData() {
   showToast("App data reset", "The starter constellation is back.");
 }
 
+function setAdminTab(tabName) {
+  elements.adminTabs.forEach((button) => {
+    const active = button.dataset.adminTab === tabName;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  elements.adminTabPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.adminPanel === tabName);
+  });
+}
+
 function bindEvents() {
+  elements.openSophiaPageButton.addEventListener("click", () => navigateTo("/forsophia"));
+  elements.openRandomizerButton.addEventListener("click", () => {
+    navigateTo("/love-lottery");
+    renderLoveLotteryMusic();
+    playLoveLotteryMusic();
+  });
+  elements.randomizerHomeButton.addEventListener("click", () => navigateTo("/"));
+  elements.spinDateButton.addEventListener("click", spinLoveLottery);
+  elements.markDateButton.addEventListener("click", markSelectedLoveLotteryActivity);
+  elements.loveLotteryAudio.addEventListener("play", renderLoveLotteryMusic);
+  elements.loveLotteryAudio.addEventListener("pause", renderLoveLotteryMusic);
+  elements.openActivityListButton.addEventListener("click", () => {
+    elements.activityListModal.hidden = false;
+  });
+  elements.activityListModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-activity-list]")) {
+      elements.activityListModal.hidden = true;
+    }
+  });
+  elements.resetDateButton.addEventListener("click", resetLoveLotteryProgress);
+  elements.activityList.addEventListener("click", (event) => {
+    const row = event.target.closest("[data-activity-id]");
+    if (row) {
+      toggleLoveLotteryActivity(row.dataset.activityId);
+    }
+  });
+  window.addEventListener("popstate", handleRouteChange);
+  elements.adminTabs.forEach((button) => {
+    button.addEventListener("click", () => setAdminTab(button.dataset.adminTab));
+  });
+  window.addEventListener("resize", () => {
+    renderHeartPhotoFrame();
+  });
+
   elements.enterButton.addEventListener("click", enterExperience);
   elements.skipOpeningButton.addEventListener("click", finishOpeningSequence);
   elements.backToLandingButton.addEventListener("click", () => {
@@ -2123,6 +2869,11 @@ function bindEvents() {
       return;
     }
 
+    if (!elements.activityListModal.hidden) {
+      elements.activityListModal.hidden = true;
+      return;
+    }
+
     if (state.activeScreen === "letter") {
       closeLetter();
     }
@@ -2161,6 +2912,7 @@ function bindEvents() {
 
     if (SUPABASE_CONFIGURED) {
       const remote = await saveRemoteData();
+      await saveRemoteLoveLotteryProgress();
       renderAdminAuth();
       showToast(remote.saved ? "Changes saved online" : "Saved locally", remote.saved ? "Supabase is updated." : remote.reason);
       return;
@@ -2174,11 +2926,35 @@ function bindEvents() {
     input.addEventListener("change", (event) => handleMusicInput(event.target));
   });
   elements.adminMusicVolume.addEventListener("input", () => {
+    const previousMusicVolume = normalizeMusic(state.data.music, DEFAULT_DATA.music).volume;
     state.data.music = {
       ...normalizeMusic(state.data.music, DEFAULT_DATA.music),
       volume: clampNumber(Number(elements.adminMusicVolume.value), 0, 1, DEFAULT_DATA.music.volume),
     };
+    syncDefaultSoundEffectVolumes(previousMusicVolume, state.data.music.volume);
     renderMusic();
+    prepareSoundEffectPlayers();
+    renderSoundLibraryForm();
+  });
+  elements.loveLotteryMusicInput.addEventListener("change", (event) => handleLoveLotteryMusicInput(event.target));
+  elements.loveLotteryMusicVolume.addEventListener("input", () => {
+    state.data.loveLottery = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+    state.data.loveLottery.music.volume = clampNumber(
+      Number(elements.loveLotteryMusicVolume.value),
+      0,
+      1,
+      DEFAULT_DATA.loveLottery.music.volume
+    );
+    renderLoveLotteryMusic();
+    renderLoveLotteryAdminForm();
+  });
+  elements.clearLoveLotteryMusicButton.addEventListener("click", () => {
+    state.data.loveLottery = normalizeLoveLotterySettings(state.data.loveLottery, DEFAULT_DATA.loveLottery);
+    state.data.loveLottery.music = structuredClone(DEFAULT_DATA.loveLottery.music);
+    elements.loveLotteryAudio.pause();
+    renderLoveLotteryMusic();
+    renderLoveLotteryAdminForm();
+    showToast("Love Lottery music cleared", "Save changes to remove it online.");
   });
   elements.clearMusicButton.addEventListener("click", () => {
     state.data.music = {
@@ -2196,15 +2972,17 @@ function bindEvents() {
   elements.soundEffectVolumeInputs.forEach((input) => {
     input.addEventListener("input", () => {
       const key = input.dataset.sfxVolume;
-      state.data.soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects);
+      const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+      state.data.soundEffects = normalizeSoundEffects(state.data.soundEffects, DEFAULT_DATA.soundEffects, music.volume);
       if (state.data.soundEffects[key]) {
-        state.data.soundEffects[key].volume = clampNumber(Number(input.value), 0, 1, DEFAULT_DATA.soundEffects[key].volume);
+        state.data.soundEffects[key].volume = clampNumber(Number(input.value), 0, 1, music.volume);
         prepareSoundEffectPlayers();
       }
     });
   });
   elements.clearSoundEffectsButton.addEventListener("click", () => {
-    state.data.soundEffects = structuredClone(DEFAULT_DATA.soundEffects);
+    const music = normalizeMusic(state.data.music, DEFAULT_DATA.music);
+    state.data.soundEffects = normalizeSoundEffects({}, DEFAULT_DATA.soundEffects, music.volume);
     prepareSoundEffectPlayers();
     renderSoundLibraryForm();
     showToast("Sound effects cleared", "Save changes to remove them online.");

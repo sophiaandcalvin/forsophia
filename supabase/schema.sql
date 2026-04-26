@@ -32,6 +32,37 @@ to authenticated
 using ((select auth.uid()) is not null and owner_id = (select auth.uid()))
 with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
 
+create table if not exists public.love_lottery_progress (
+  page_id text primary key references public.constellation_pages(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  progress jsonb not null default '{"markedIds":[],"completionCount":0,"log":[],"nextDatePlan":null}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.love_lottery_progress enable row level security;
+
+drop policy if exists "Public can read love lottery progress" on public.love_lottery_progress;
+create policy "Public can read love lottery progress"
+on public.love_lottery_progress
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "Authenticated owner can insert love lottery progress" on public.love_lottery_progress;
+create policy "Authenticated owner can insert love lottery progress"
+on public.love_lottery_progress
+for insert
+to authenticated
+with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
+
+drop policy if exists "Authenticated owner can update love lottery progress" on public.love_lottery_progress;
+create policy "Authenticated owner can update love lottery progress"
+on public.love_lottery_progress
+for update
+to authenticated
+using ((select auth.uid()) is not null and owner_id = (select auth.uid()))
+with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'constellation-media',

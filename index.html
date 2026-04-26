@@ -10,7 +10,86 @@
     <canvas id="ambientCanvas" aria-hidden="true"></canvas>
 
     <main id="app" class="app">
-      <section id="landingScreen" class="screen landing-screen is-active" aria-labelledby="landingTitle">
+      <section id="dashboardScreen" class="screen dashboard-screen is-active" aria-labelledby="dashboardTitle">
+        <div class="dashboard-shell">
+          <header class="dashboard-header">
+            <p class="overline">Just for us</p>
+            <h1 id="dashboardTitle">Our little home</h1>
+            <p>Choose where we are going today.</p>
+          </header>
+          <div class="dashboard-grid">
+            <button id="openSophiaPageButton" class="dashboard-tile dashboard-tile-stars" type="button">
+              <span class="dashboard-tile-kicker">For Sophia</span>
+              <span class="dashboard-tile-title">Constellation</span>
+              <span class="dashboard-tile-copy">Open the stars, memories, letter, and hidden moments.</span>
+            </button>
+            <button id="openRandomizerButton" class="dashboard-tile dashboard-tile-random" type="button">
+              <span class="dashboard-tile-kicker">Love Lottery</span>
+              <span class="dashboard-tile-title">Today Picker</span>
+              <span class="dashboard-tile-copy">Spin one cute thing for us to do together today.</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="randomizerScreen" class="screen randomizer-screen" aria-labelledby="randomizerTitle">
+        <div class="randomizer-shell">
+          <header class="randomizer-header">
+            <button id="randomizerHomeButton" class="icon-button" type="button" aria-label="Back to dashboard">
+              <span aria-hidden="true">&lt;</span>
+            </button>
+            <div>
+              <p class="overline">Love Lottery</p>
+              <h1 id="randomizerTitle">What are we doing today?</h1>
+            </div>
+            <button id="openActivityListButton" class="secondary-button randomizer-list-button" type="button">List</button>
+          </header>
+
+          <div class="randomizer-visual">
+            <svg class="heart-glow-line" viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 84 C24 64 12 49 17 34 C21 20 38 17 50 33 C62 17 79 20 83 34 C88 49 76 64 50 84"></path>
+            </svg>
+            <div id="heartPhotoFrame" class="heart-photo-frame" aria-hidden="true"></div>
+            <section id="randomizerStage" class="randomizer-stage" aria-live="polite">
+              <h2 id="randomizerResult">Today</h2>
+              <p id="randomizerTask" class="randomizer-task" hidden></p>
+              <button id="spinDateButton" class="spin-orb-button" type="button">Spin</button>
+              <button id="markDateButton" class="secondary-button mark-selected-button" type="button" disabled>Mark selected</button>
+            </section>
+          </div>
+          <div id="nextDateLog" class="next-date-log" hidden></div>
+          <div class="love-progress-shell" aria-label="Love Lottery progress">
+            <div class="love-progress-labels">
+              <span id="loveProgressCount">0 / 500</span>
+              <span id="loveProgressNext">Next star at 30</span>
+            </div>
+            <div id="loveProgressTrack" class="love-progress-track">
+              <div id="loveProgressFill" class="love-progress-fill"></div>
+              <div id="loveProgressStars" class="love-progress-stars"></div>
+            </div>
+          </div>
+        </div>
+        <audio id="loveLotteryAudio" preload="metadata" loop></audio>
+      </section>
+
+      <div id="activityListModal" class="modal activity-list-modal" role="dialog" aria-modal="true" aria-labelledby="activityListTitle" hidden>
+        <div class="modal-backdrop" data-close-activity-list></div>
+        <section class="activity-panel" aria-labelledby="activityListTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close list" data-close-activity-list>
+            <span aria-hidden="true">x</span>
+          </button>
+          <div class="activity-panel-header">
+            <div>
+              <p class="overline">The list</p>
+              <h2 id="activityListTitle">Cute daily ideas</h2>
+            </div>
+            <span id="activityCount" class="activity-count">0 / 500 marked</span>
+          </div>
+          <div id="activityList" class="activity-list"></div>
+        </section>
+      </div>
+
+      <section id="landingScreen" class="screen landing-screen" aria-labelledby="landingTitle">
         <canvas id="loveTrailCanvas" class="love-trail-canvas" aria-hidden="true"></canvas>
         <div class="landing-content">
           <p class="overline">A constellation of little moments</p>
@@ -170,6 +249,12 @@
           <span>Save after uploads or edits.</span>
         </div>
 
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" data-admin-tab="constellation">Constellation</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="loveLottery">Love Lottery</button>
+        </div>
+
+        <div id="adminConstellationTab" class="admin-tab-panel is-active" data-admin-panel="constellation">
         <section id="adminAuthSection" class="admin-section admin-auth-section">
           <h3>Supabase</h3>
           <p id="adminSupabaseStatus" class="admin-status">Supabase is not configured. Changes save in this browser only.</p>
@@ -325,6 +410,26 @@
             <button id="resetDataButton" class="secondary-button danger-button" type="button">Reset app data</button>
           </div>
         </section>
+        </div>
+
+        <div id="adminLoveLotteryTab" class="admin-tab-panel" data-admin-panel="loveLottery">
+          <section class="admin-section">
+            <h3>Love Lottery music</h3>
+            <p id="loveLotteryMusicStatus" class="admin-status">No Love Lottery music saved.</p>
+            <label>
+              Music file
+              <input id="loveLotteryMusicInput" type="file" accept="audio/*">
+            </label>
+            <label>
+              Volume
+              <input id="loveLotteryMusicVolume" type="range" min="0" max="1" step="0.01">
+            </label>
+            <div class="admin-actions">
+              <button id="clearLoveLotteryMusicButton" class="secondary-button" type="button">Clear Love Lottery music</button>
+              <button id="resetDateButton" class="secondary-button danger-button" type="button">Reset Love Lottery marks</button>
+            </div>
+          </section>
+        </div>
       </form>
     </aside>
 
