@@ -423,7 +423,10 @@ button:disabled {
 }
 
 .mark-selected-button {
-  min-height: 2.55rem;
+  min-height: 2.15rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
   pointer-events: auto;
 }
 
@@ -2103,6 +2106,20 @@ body[data-screen="randomizer"] .music-player {
     padding: 1rem;
   }
 
+  .randomizer-screen {
+    display: block;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+  }
+
+  .randomizer-shell {
+    min-height: auto;
+    padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -2177,13 +2194,14 @@ body[data-screen="randomizer"] .music-player {
   }
 
   .mark-selected-button {
-    min-height: 2.35rem;
-    padding: 0 0.8rem;
-    font-size: 0.78rem;
+    min-height: 1.85rem;
+    padding: 0 0.55rem;
+    font-size: 0.68rem;
   }
 
   .love-progress-shell {
     padding-top: 0.25rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
 
   .next-date-log {

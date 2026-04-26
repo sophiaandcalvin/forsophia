@@ -1166,7 +1166,10 @@ function renderLoveLottery() {
   elements.activityCount.textContent = `${completedCount} / ${total} progress`;
   elements.markDateButton.disabled =
     !state.selectedActivityId ||
+    getLoveLotterySpinsToday() >= 3 ||
     (marked.has(state.selectedActivityId) && getLoveLotteryActivity(state.selectedActivityId)?.category !== "shopping");
+  elements.spinDateButton.disabled = getLoveLotterySpinsToday() >= 3;
+  elements.spinDateButton.textContent = getLoveLotterySpinsToday() >= 3 ? "Done" : "Spin";
   renderLoveLotteryProgress(completedCount, total);
   renderNextDateLog();
   if (!state.selectedActivityId) {
@@ -1205,6 +1208,17 @@ function getLoveLotteryCompletionCount() {
 
 function getLoveLotteryActivity(activityId) {
   return LOVE_LOTTERY_ACTIVITIES.find((activity) => activity.id === activityId);
+}
+
+function getLoveLotterySpinsToday() {
+  const todayKey = new Date().toDateString();
+  return (Array.isArray(state.loveLottery.log) ? state.loveLottery.log : []).filter((entry) => {
+    if (!entry?.loggedAt) {
+      return false;
+    }
+
+    return new Date(entry.loggedAt).toDateString() === todayKey;
+  }).length;
 }
 
 function formatLoveLotteryDate(date = new Date()) {
@@ -1313,6 +1327,14 @@ function playLoveLotteryMusic() {
 }
 
 function spinLoveLottery() {
+  if (getLoveLotterySpinsToday() >= 3) {
+    elements.randomizerResult.textContent = "All 3 spins are logged for today.";
+    elements.randomizerTask.hidden = true;
+    elements.randomizerTask.textContent = "";
+    renderLoveLottery();
+    return;
+  }
+
   const marked = new Set(state.loveLottery.markedIds);
   const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => activity.category === "shopping" || !marked.has(activity.id));
 
@@ -1366,6 +1388,12 @@ function spinLoveLottery() {
 function markSelectedLoveLotteryActivity() {
   const activity = getLoveLotteryActivity(state.selectedActivityId);
   if (!state.selectedActivityId || !activity) {
+    return;
+  }
+
+  if (getLoveLotterySpinsToday() >= 3) {
+    elements.randomizerResult.textContent = "All 3 spins are logged for today.";
+    renderLoveLottery();
     return;
   }
 
