@@ -62,6 +62,8 @@ The SES keys must be server-only environment variables, not `VITE_*` variables. 
 
 Set `EMAIL_ADMIN_EMAILS` to the Supabase Auth email addresses allowed to send test emails, separated by commas.
 
+During `npm run dev`, `vite.config.js` serves the same `/api/send-test-email` endpoint locally so the admin test button can be used before deployment.
+
 ## Deployment
 
 Deploy as a Vite static app and set the same `VITE_*` environment variables in your hosting provider. For the deployed site, set `VITE_SUPABASE_REDIRECT_TO` to your production admin URL, for example:

@@ -59,16 +59,16 @@ const DEFAULT_DATA = {
     },
     {
       id: "coffee-table",
-      title: "That little table",
-      context: "Coffee and easy conversation",
-      caption: "I remember how easy it was to talk with you, even when there was nothing important to say.",
+      title: "Us on our dates",
+      context: "Every place felt easier with you",
+      caption: "I loved getting to be out in the world with you. Dinner, coffee, little plans - it all felt better because it was us.",
       image: "",
       mediaType: "image",
       x: 31,
       y: 55,
       accent: "#f3d386",
       hasHeart: true,
-      loveMessage: "You make ordinary time feel worth remembering.",
+      loveMessage: "You made every date feel like somewhere I wanted to stay.",
     },
     {
       id: "laugh",
@@ -85,9 +85,9 @@ const DEFAULT_DATA = {
     },
     {
       id: "drive-home",
-      title: "The drive home",
-      context: "Windows down, music low",
-      caption: "It was quiet, but not empty. I liked that kind of quiet with you.",
+      title: "Beside you",
+      context: "Where happy felt simple",
+      caption: "Beside you, I felt so happy. Even in quiet moments, being close to you made the world feel softer.",
       image: "",
       mediaType: "image",
       x: 59,
@@ -111,16 +111,16 @@ const DEFAULT_DATA = {
     },
     {
       id: "favorite-photo",
-      title: "The photo I kept",
-      context: "A favorite frame",
-      caption: "There is something about this one that still feels gentle to me.",
+      title: "The most beautiful person",
+      context: "The way I see you",
+      caption: "To me, you are the most beautiful person in the world. Not only because of how you look, but because of the softness and light you carry.",
       image: "",
       mediaType: "image",
       x: 82,
       y: 62,
       accent: "#f3d386",
       hasHeart: true,
-      loveMessage: "You bring warmth without trying to perform it.",
+      loveMessage: "Your beauty feels calm, real, and impossible not to notice.",
     },
     {
       id: "small-kindness",
@@ -137,9 +137,9 @@ const DEFAULT_DATA = {
     },
     {
       id: "last-light",
-      title: "Last light",
-      context: "Evening",
-      caption: "The light was soft, and so was the moment. I remember feeling lucky to be there.",
+      title: "Our first Christmas",
+      context: "A memory wrapped in warmth",
+      caption: "Our first Christmas is one of those memories I still hold carefully. It felt sweet, warm, and ours.",
       image: "",
       mediaType: "image",
       x: 25,
@@ -189,16 +189,16 @@ const DEFAULT_DATA = {
     },
     {
       id: "quiet-support",
-      title: "Quiet support",
+      title: "By your side",
       context: "When things felt heavy",
-      caption: "I noticed how you showed up for people. I should have said more about how much that mattered.",
+      caption: "I remember being beside you when things felt uncertain, wishing I could carry more of it for you. I would choose that place beside you, always.",
       image: "",
       mediaType: "image",
       x: 61,
       y: 84,
       accent: "#9582f2",
       hasHeart: true,
-      loveMessage: "You care in ways that are steady and real.",
+      loveMessage: "Being there for you felt natural, because your heart matters to me.",
     },
     {
       id: "ordinary-night",
@@ -240,6 +240,39 @@ const DEFAULT_DATA = {
       loveMessage: "",
     },
   ],
+};
+
+const STARTER_MEMORY_COPY_MIGRATIONS = {
+  "coffee-table": {
+    title: "That little table",
+    context: "Coffee and easy conversation",
+    caption: "I remember how easy it was to talk with you, even when there was nothing important to say.",
+    loveMessage: "You make ordinary time feel worth remembering.",
+  },
+  "drive-home": {
+    title: "The drive home",
+    context: "Windows down, music low",
+    caption: "It was quiet, but not empty. I liked that kind of quiet with you.",
+    loveMessage: "",
+  },
+  "favorite-photo": {
+    title: "The photo I kept",
+    context: "A favorite frame",
+    caption: "There is something about this one that still feels gentle to me.",
+    loveMessage: "You bring warmth without trying to perform it.",
+  },
+  "last-light": {
+    title: "Last light",
+    context: "Evening",
+    caption: "The light was soft, and so was the moment. I remember feeling lucky to be there.",
+    loveMessage: "",
+  },
+  "quiet-support": {
+    title: "Quiet support",
+    context: "When things felt heavy",
+    caption: "I noticed how you showed up for people. I should have said more about how much that mattered.",
+    loveMessage: "You care in ways that are steady and real.",
+  },
 };
 
 const OPENING_SEQUENCE = [
@@ -413,8 +446,11 @@ function loadData() {
 
 function normalizeData(data) {
   const fallback = structuredClone(DEFAULT_DATA);
-  const memories = mergeStarterMemories(
-    Array.isArray(data.memories) && data.memories.length ? data.memories : fallback.memories,
+  const memories = updateStarterMemoryCopy(
+    mergeStarterMemories(
+      Array.isArray(data.memories) && data.memories.length ? data.memories : fallback.memories,
+      fallback.memories
+    ),
     fallback.memories
   );
 
@@ -472,6 +508,27 @@ function mergeStarterMemories(memories, starterMemories) {
   const existingIds = new Set(memories.map((memory) => memory.id));
   const missing = starterMemories.filter((memory) => !existingIds.has(memory.id));
   return [...memories, ...missing];
+}
+
+function updateStarterMemoryCopy(memories, starterMemories) {
+  const starterById = new Map(starterMemories.map((memory) => [memory.id, memory]));
+  return memories.map((memory) => {
+    const legacy = STARTER_MEMORY_COPY_MIGRATIONS[memory.id];
+    const starter = starterById.get(memory.id);
+
+    if (!legacy || !starter) {
+      return memory;
+    }
+
+    const nextMemory = { ...memory };
+    ["title", "context", "caption", "loveMessage"].forEach((field) => {
+      if (nextMemory[field] === legacy[field]) {
+        nextMemory[field] = starter[field];
+      }
+    });
+
+    return nextMemory;
+  });
 }
 
 function normalizeSoundEffects(soundEffects, fallbackSoundEffects) {
