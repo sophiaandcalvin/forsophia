@@ -279,26 +279,26 @@ const OPENING_SEQUENCE = [
   {
     kicker: "Before the stars",
     title: "Sophia, I choose you.",
-    line: "I know that more clearly than ever.",
+    line: "I know that more clearly and more gently than I ever have before.",
   },
   {
     kicker: "What I know",
     title: "No one comes close.",
-    line: "Not in my heart. Not in the quiet places I keep coming back to.",
+    line: "Not in my heart. Not in the quiet places I keep returning to.",
   },
   {
-    kicker: "What I want",
-    title: "To protect your heart.",
-    line: "Your peace, your softness, and the love I should have held with more care.",
+    kicker: "What I carry",
+    title: "A love that stayed.",
+    line: "Your softness, your light, the way you made ordinary moments feel worth holding onto.",
   },
   {
     kicker: "Still",
-    title: "No pressure.",
-    line: "You do not owe me a response. I just wanted you to feel loved here.",
+    title: "No pressure. Just love.",
+    line: "You do not owe me anything. I only wanted you to feel seen and treasured here.",
   },
   {
     kicker: "For you",
-    title: "The stars are little moments.",
+    title: "Every star is a little moment.",
     line: "Each one is something I love, remember, or never stopped feeling.",
   },
 ];
@@ -311,7 +311,6 @@ const state = {
   remoteMessage: "",
   activeScreen: "landing",
   previousScreen: "constellation",
-  selectedPuzzleIndex: null,
   activeMemoryId: null,
   activeMediaIndex: 0,
   albumIndex: 0,
@@ -327,8 +326,8 @@ const state = {
     starHover: 0,
     starClick: 0,
   },
-  puzzleOrder: [],
-  puzzleSolved: false,
+  revealComplete: false,
+  revealListeners: null,
 };
 
 const elements = {
@@ -358,8 +357,9 @@ const elements = {
   openPuzzleButton: document.querySelector("#openPuzzleButton"),
   openLetterButton: document.querySelector("#openLetterButton"),
   openAdminButton: document.querySelector("#openAdminButton"),
-  puzzleBoard: document.querySelector("#puzzleBoard"),
-  shufflePuzzleButton: document.querySelector("#shufflePuzzleButton"),
+  revealContainer: document.querySelector("#revealContainer"),
+  revealPhoto: document.querySelector("#revealPhoto"),
+  revealCanvas: document.querySelector("#revealCanvas"),
   closePuzzleButton: document.querySelector("#closePuzzleButton"),
   puzzleLetterButton: document.querySelector("#puzzleLetterButton"),
   closeLetterButton: document.querySelector("#closeLetterButton"),
@@ -484,6 +484,10 @@ function normalizeData(data) {
         accent: memory.accent || fallback.memories[index % fallback.memories.length].accent,
         hasHeart: Boolean(memory.hasHeart),
         loveMessage: memory.loveMessage || "",
+        heartPhoto: {
+          url: memory.heartPhoto?.url || "",
+          name: memory.heartPhoto?.name || "",
+        },
       };
     }),
   };
@@ -651,7 +655,7 @@ async function init() {
   renderApp();
   renderAdminForm();
   renderAdminAuth();
-  initPuzzle();
+  initReveal();
   bindEvents();
   initAmbientCanvas();
   initLoveTrail();
@@ -713,7 +717,7 @@ async function loadRemoteData() {
     saveData();
     renderApp();
     renderAdminForm();
-    initPuzzle();
+    initReveal();
     state.remoteMessage = `Loaded Supabase page "${PAGE_ID}".`;
   } else {
     state.remoteMessage = `No Supabase page exists yet for "${PAGE_ID}". Sign in and save to create it.`;
@@ -927,7 +931,9 @@ function renderStars() {
     button.setAttribute("aria-label", `Open memory: ${memory.title}`);
     button.dataset.memoryId = memory.id;
 
-    if (state.progress.memoriesFound.includes(memory.id)) {
+    const isFound = state.progress.memoriesFound.includes(memory.id);
+
+    if (isFound) {
       button.classList.add("is-found");
     }
 
@@ -935,9 +941,15 @@ function renderStars() {
       button.classList.add("is-heart-found");
     }
 
+    if (memory.hasHeart) {
+      button.classList.add("has-heart");
+    }
+
     const core = document.createElement("span");
     core.className = "star-core";
-    core.style.boxShadow = `0 0 12px rgba(255, 250, 240, 0.95), 0 0 30px ${hexToRgba(memory.accent, 0.45)}`;
+    core.style.boxShadow = isFound
+      ? `0 0 14px rgba(148, 215, 228, 0.92), 0 0 32px rgba(149, 130, 242, 0.32)`
+      : `0 0 12px rgba(255, 250, 240, 0.95), 0 0 30px ${hexToRgba(memory.accent, 0.45)}`;
     button.append(core);
 
     button.addEventListener("pointerenter", () => playSoundEffect("starHover"));
@@ -1041,7 +1053,7 @@ function getProgressDetails() {
     validMemoryFound,
     validHeartsFound,
     puzzleTarget: target,
-    puzzleUnlocked: heartIds.length === 0 || validHeartsFound.length >= target,
+    puzzleUnlocked: validMemoryFound.length >= totalMemories,
     albumUnlocked: heartIds.length > 0 && validHeartsFound.length >= heartIds.length,
   };
 }
@@ -1056,7 +1068,7 @@ function renderProgress() {
   elements.memoryProgress.textContent = `Memories found: ${progress.validMemoryFound.length} / ${progress.totalMemories}`;
   elements.heartProgress.textContent = `Hidden moments: ${progress.validHeartsFound.length} / ${progress.heartIds.length}`;
   elements.openPuzzleButton.disabled = !progress.puzzleUnlocked;
-  elements.openPuzzleButton.textContent = progress.puzzleUnlocked ? "Open puzzle" : "Puzzle locked";
+  elements.openPuzzleButton.textContent = progress.puzzleUnlocked ? "A gift for you" : "Gift locked";
   elements.openAlbumButton.hidden = !progress.albumUnlocked;
 }
 
@@ -1242,7 +1254,12 @@ function renderMemoryMedia(memory) {
 function openHiddenMemoryPopup(memory) {
   elements.hiddenMemoryTitle.textContent = memory.title || "A small thing I love";
   elements.hiddenMemoryCaption.textContent = memory.loveMessage || memory.caption || "A quiet piece of why you mean so much.";
-  renderMediaSurface(elements.hiddenMemoryMedia, memory, getPreferredMemoryMedia(memory, 0, true), { controls: true });
+
+  const heartMedia = memory.heartPhoto?.url
+    ? { url: memory.heartPhoto.url, type: "image", name: memory.heartPhoto.name || "" }
+    : getPreferredMemoryMedia(memory, 0, true);
+
+  renderMediaSurface(elements.hiddenMemoryMedia, memory, heartMedia, { controls: true });
   elements.hiddenMemoryModal.hidden = false;
 }
 
@@ -1339,94 +1356,169 @@ function closeLetter() {
   showScreen(state.previousScreen === "puzzle" ? "puzzle" : "constellation");
 }
 
-function initPuzzle() {
-  state.puzzleOrder = createShuffledOrder();
-  state.selectedPuzzleIndex = null;
-  state.puzzleSolved = false;
-  renderPuzzle();
-}
+function initReveal() {
+  state.revealComplete = false;
 
-function createShuffledOrder() {
-  const order = Array.from({ length: 9 }, (_, index) => index);
-  for (let index = order.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
+  if (state.revealListeners) {
+    elements.revealCanvas.removeEventListener("mousemove", state.revealListeners.mousemove);
+    elements.revealCanvas.removeEventListener("touchmove", state.revealListeners.touchmove);
+    state.revealListeners = null;
   }
 
-  if (order.every((tile, index) => tile === index)) {
-    [order[0], order[1]] = [order[1], order[0]];
+  elements.revealCanvas.style.cssText = "";
+  elements.puzzleLetterButton.hidden = true;
+
+  const url = getRevealPhotoUrl();
+  if (url) {
+    elements.revealPhoto.src = url;
+    elements.revealPhoto.hidden = false;
+  } else {
+    elements.revealPhoto.src = "";
+    elements.revealPhoto.hidden = true;
   }
 
-  return order;
+  const setup = () => {
+    const container = elements.revealContainer;
+    elements.revealCanvas.width = container.offsetWidth || 400;
+    elements.revealCanvas.height = container.offsetHeight || 400;
+    drawRevealOverlay();
+  };
+
+  if (url) {
+    if (elements.revealPhoto.complete && elements.revealPhoto.naturalWidth) {
+      setup();
+    } else {
+      elements.revealPhoto.onload = setup;
+    }
+  } else {
+    window.setTimeout(setup, 0);
+  }
+
+  let lastCheck = 0;
+
+  const handleMove = (x, y) => {
+    if (state.revealComplete) {
+      return;
+    }
+
+    scratchReveal(x, y);
+
+    const now = Date.now();
+    if (now - lastCheck >= 350) {
+      lastCheck = now;
+      checkRevealComplete();
+    }
+  };
+
+  const onMouseMove = (e) => {
+    const rect = elements.revealCanvas.getBoundingClientRect();
+    handleMove(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    const rect = elements.revealCanvas.getBoundingClientRect();
+    const t = e.touches[0];
+    handleMove(t.clientX - rect.left, t.clientY - rect.top);
+  };
+
+  elements.revealCanvas.addEventListener("mousemove", onMouseMove);
+  elements.revealCanvas.addEventListener("touchmove", onTouchMove, { passive: false });
+  state.revealListeners = { mousemove: onMouseMove, touchmove: onTouchMove };
 }
 
-function renderPuzzle() {
-  elements.puzzleBoard.innerHTML = "";
-  const image = getPuzzleImage();
-
-  state.puzzleOrder.forEach((tileNumber, boardIndex) => {
-    const tile = document.createElement("button");
-    tile.type = "button";
-    tile.className = "puzzle-tile";
-    tile.textContent = `Piece ${tileNumber + 1}`;
-    tile.style.backgroundImage = image;
-    tile.style.backgroundSize = "300% 300%";
-    tile.style.backgroundPosition = `${(tileNumber % 3) * 50}% ${Math.floor(tileNumber / 3) * 50}%`;
-    tile.classList.toggle("is-selected", state.selectedPuzzleIndex === boardIndex);
-    tile.addEventListener("click", () => selectPuzzleTile(boardIndex));
-    elements.puzzleBoard.append(tile);
-  });
-}
-
-function getPuzzleImage() {
-  const firstPhoto = state.data.memories
-    .flatMap((memory) => getMemoryMedia(memory))
-    .find((media) => media.type !== "video")?.url;
+function getRevealPhotoUrl() {
   if (state.data.puzzleImage) {
-    return `url("${state.data.puzzleImage}")`;
+    return state.data.puzzleImage;
   }
 
-  if (firstPhoto) {
-    return `url("${firstPhoto}")`;
-  }
-
-  return makeFallbackBackground("#f3d386");
+  return state.data.memories
+    .flatMap((memory) => getMemoryMedia(memory))
+    .find((media) => media.type !== "video")?.url || "";
 }
 
-function selectPuzzleTile(boardIndex) {
-  if (state.puzzleSolved) {
-    return;
-  }
+function drawRevealOverlay() {
+  const canvas = elements.revealCanvas;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
 
-  if (state.selectedPuzzleIndex === null) {
-    state.selectedPuzzleIndex = boardIndex;
-    renderPuzzle();
-    return;
-  }
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, "rgba(6, 9, 26, 0.97)");
+  grad.addColorStop(1, "rgba(16, 9, 32, 0.97)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
 
-  if (state.selectedPuzzleIndex === boardIndex) {
-    state.selectedPuzzleIndex = null;
-    renderPuzzle();
-    return;
-  }
+  const fontSize = Math.max(14, Math.round(h * 0.048));
+  const lineH = Math.round(fontSize * 1.55);
 
-  [state.puzzleOrder[state.selectedPuzzleIndex], state.puzzleOrder[boardIndex]] = [
-    state.puzzleOrder[boardIndex],
-    state.puzzleOrder[state.selectedPuzzleIndex],
+  ctx.fillStyle = "rgba(247, 241, 232, 0.92)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `italic ${fontSize}px Georgia, "Times New Roman", serif`;
+
+  const lines = [
+    "“If I could fold time back",
+    "and begin again,",
+    "I would find you sooner,",
+    "love you louder,",
+    "and never let you wonder.”",
   ];
-  state.selectedPuzzleIndex = null;
-  renderPuzzle();
-  checkPuzzle();
+
+  const totalH = lines.length * lineH;
+  const startY = h / 2 - totalH / 2 + lineH / 2;
+  lines.forEach((line, i) => {
+    ctx.fillText(line, w / 2, startY + i * lineH);
+  });
+
+  const hintSize = Math.max(11, Math.round(fontSize * 0.56));
+  ctx.font = `${hintSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillStyle = "rgba(185, 192, 214, 0.6)";
+  ctx.fillText("move your cursor here to reveal", w / 2, h - Math.round(h * 0.055));
 }
 
-function checkPuzzle() {
-  if (!state.puzzleOrder.every((tile, index) => tile === index)) {
+function scratchReveal(x, y) {
+  const canvas = elements.revealCanvas;
+  const ctx = canvas.getContext("2d");
+  const radius = Math.max(22, Math.round(canvas.width * 0.06));
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function checkRevealComplete() {
+  if (state.revealComplete) {
     return;
   }
 
-  state.puzzleSolved = true;
-  showToast("Puzzle complete", "The letter is ready when you are.");
-  window.setTimeout(showLetter, 700);
+  const canvas = elements.revealCanvas;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let transparent = 0;
+
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 128) {
+      transparent += 1;
+    }
+  }
+
+  if (transparent / (data.length / 4) >= 0.62) {
+    autoCompleteReveal();
+  }
+}
+
+function autoCompleteReveal() {
+  state.revealComplete = true;
+  const canvas = elements.revealCanvas;
+  canvas.style.transition = "opacity 900ms ease";
+  canvas.style.opacity = "0";
+  window.setTimeout(() => {
+    canvas.style.display = "none";
+    elements.puzzleLetterButton.hidden = false;
+    showToast("Revealed", "The letter is waiting for you whenever you’re ready.");
+  }, 900);
 }
 
 function renderAdminForm() {
@@ -1507,8 +1599,14 @@ function renderMemoryEditors() {
         Hidden SC popup caption
         <textarea rows="2" data-field="loveMessage">${escapeHtml(memory.loveMessage)}</textarea>
       </label>
+      <label>
+        Hidden SC photo
+        <input type="file" accept="image/*" data-heart-photo-input="${index}">
+      </label>
+      <p class="admin-status">${memory.heartPhoto?.url ? "Heart photo saved." : "No heart photo — uses memory photo as fallback."}</p>
       <div class="memory-editor-actions">
         <button class="secondary-button" type="button" data-clear-media="${index}">Clear media</button>
+        <button class="secondary-button" type="button" data-clear-heart-photo="${index}">Clear heart photo</button>
       </div>
     `;
 
@@ -1737,6 +1835,31 @@ async function handleMemoryMediaInput(input) {
   }
 }
 
+async function handleHeartPhotoInput(input) {
+  const index = Number(input.dataset.heartPhotoInput);
+  const file = input.files?.[0];
+  if (!file || !state.data.memories[index]) {
+    return;
+  }
+
+  try {
+    const memory = state.data.memories[index];
+    const media = await uploadMediaFile(file, `heart-photo-${memory.id}`);
+    if (media.mediaType !== "image") {
+      showToast("Heart photo needs an image", "Choose a photo for the hidden SC moment.");
+      return;
+    }
+
+    memory.heartPhoto = { url: media.url, name: file.name };
+    renderMemoryEditors();
+    showToast("Heart photo added", "Save changes to publish it online.");
+  } catch (error) {
+    showToast("Upload failed", error.message);
+  } finally {
+    input.value = "";
+  }
+}
+
 async function handlePuzzleImageInput(input) {
   const file = input.files?.[0];
   if (!file) {
@@ -1879,7 +2002,7 @@ async function importJson(input) {
     saveData();
     renderApp();
     renderAdminForm();
-    initPuzzle();
+    initReveal();
     showToast("JSON imported", "The constellation has been updated.");
   } catch {
     showToast("Import failed", "That file was not valid JSON for this app.");
@@ -1892,7 +2015,7 @@ function resetProgress() {
   state.progress = { memoriesFound: [], heartsFound: [] };
   saveProgress();
   renderApp();
-  initPuzzle();
+  initReveal();
   showToast("Progress reset", "All stars and hidden moments are undiscovered again.");
 }
 
@@ -1925,6 +2048,14 @@ function bindEvents() {
   });
   elements.closeLetterButton.addEventListener("click", closeLetter);
 
+  elements.letterTitle.addEventListener("click", () => {
+    const secret = "Sophia, my baby and my wifey";
+    elements.letterTitle.textContent =
+      elements.letterTitle.textContent === secret
+        ? state.data.letter.title
+        : secret;
+  });
+
   elements.openAlbumButton.addEventListener("click", () => {
     playSoundEffect("starClick");
     openAlbum();
@@ -1932,12 +2063,12 @@ function bindEvents() {
 
   elements.openPuzzleButton.addEventListener("click", () => {
     if (!elements.openPuzzleButton.disabled) {
+      initReveal();
       showScreen("puzzle");
     }
   });
 
   elements.closePuzzleButton.addEventListener("click", () => showScreen("constellation"));
-  elements.shufflePuzzleButton.addEventListener("click", initPuzzle);
 
   elements.memoryModal.addEventListener("click", (event) => {
     if (event.target.closest("[data-close-modal]")) {
@@ -2026,7 +2157,7 @@ function bindEvents() {
     saveData();
     renderApp();
     renderAdminForm();
-    initPuzzle();
+    initReveal();
 
     if (SUPABASE_CONFIGURED) {
       const remote = await saveRemoteData();
@@ -2107,6 +2238,10 @@ function bindEvents() {
     if (event.target.matches("[data-media-input]")) {
       handleMemoryMediaInput(event.target);
     }
+
+    if (event.target.matches("[data-heart-photo-input]")) {
+      handleHeartPhotoInput(event.target);
+    }
   });
 
   elements.memoryEditorList.addEventListener("click", (event) => {
@@ -2127,11 +2262,28 @@ function bindEvents() {
         showToast("Media cleared", "Save changes to keep this update.");
       }
     }
+
+    const clearHeartButton = event.target.closest("[data-clear-heart-photo]");
+    if (clearHeartButton) {
+      const index = Number(clearHeartButton.dataset.clearHeartPhoto);
+      if (state.data.memories[index]) {
+        state.data.memories[index].heartPhoto = { url: "", name: "" };
+        renderMemoryEditors();
+        showToast("Heart photo cleared", "Save changes to keep this update.");
+      }
+    }
   });
 }
 
 function enterExperience() {
   unlockSoundEffects();
+  document.body.classList.add("is-entered");
+  const el = document.documentElement;
+  if (el.requestFullscreen) {
+    el.requestFullscreen().catch(() => {});
+  } else if (el.webkitRequestFullscreen) {
+    el.webkitRequestFullscreen();
+  }
   if (elements.musicAudio.src && elements.musicAudio.paused) {
     elements.musicAudio.play().catch(() => {
       showToast("Music blocked", "Use the music play button once the constellation opens.");

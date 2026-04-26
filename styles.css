@@ -132,7 +132,7 @@ button:disabled {
   color: var(--gold);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -526,10 +526,52 @@ textarea:focus-visible {
 }
 
 .star-button.is-found .star-core {
-  background: var(--gold);
+  background: var(--cyan);
   box-shadow:
-    0 0 14px rgba(243, 211, 134, 0.96),
-    0 0 30px rgba(246, 166, 186, 0.32);
+    0 0 14px rgba(148, 215, 228, 0.92),
+    0 0 32px rgba(149, 130, 242, 0.32);
+}
+
+.star-button.has-heart::before,
+.star-button.has-heart::after {
+  border-color: rgba(149, 130, 242, 0.5);
+  opacity: 0.28;
+  animation: heartRingPulse 4s ease-in-out infinite;
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.star-button.has-heart::after {
+  width: 1.35rem;
+  height: 1.35rem;
+  animation-delay: 2s;
+}
+
+.star-button.has-heart:hover::before,
+.star-button.has-heart:focus-visible::before {
+  opacity: 1;
+  animation: starRipple 920ms ease-out infinite;
+  transform: translate(-50%, -50%) scale(0.45);
+}
+
+.star-button.has-heart:hover::after,
+.star-button.has-heart:focus-visible::after {
+  width: 0.9rem;
+  height: 0.9rem;
+  opacity: 1;
+  animation: starRipple 920ms ease-out 180ms infinite;
+  transform: translate(-50%, -50%) scale(0.45);
+}
+
+@keyframes heartRingPulse {
+  0%, 100% {
+    opacity: 0.14;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
+  50% {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
 }
 
 .star-button:hover .star-core,
@@ -752,10 +794,10 @@ textarea:focus-visible {
   width: min(58rem, calc(100% - 2rem));
   max-height: calc(100vh - 3rem);
   overflow: hidden;
-  border: 1px solid var(--line-strong);
+  border: 1px solid rgba(246, 166, 186, 0.22);
   border-radius: 0.5rem;
-  background: rgba(14, 19, 34, 0.94);
-  box-shadow: var(--shadow);
+  background: rgba(12, 16, 30, 0.96);
+  box-shadow: var(--shadow), 0 0 60px rgba(246, 166, 186, 0.07);
   transform: translate(-50%, -50%);
 }
 
@@ -813,6 +855,7 @@ textarea:focus-visible {
   color: var(--gold);
   font-size: 0.82rem;
   font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -821,7 +864,7 @@ textarea:focus-visible {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 2.4rem;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
 }
 
 .memory-copy p {
@@ -1044,6 +1087,66 @@ textarea:focus-visible {
   gap: 0.55rem;
 }
 
+.reveal-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 1.25rem;
+  gap: 1rem;
+}
+
+.reveal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.reveal-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 1.25rem;
+  min-height: 0;
+}
+
+.reveal-container {
+  position: relative;
+  width: min(38rem, 100%);
+  height: min(calc(100vh - 12rem), 56vw, 34rem);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0d0920 0%, #130c28 100%);
+  box-shadow: var(--shadow), 0 0 60px rgba(149, 130, 242, 0.12);
+  cursor: none;
+}
+
+.reveal-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.reveal-canvas {
+  position: absolute;
+  inset: 0;
+  cursor: none;
+  touch-action: none;
+}
+
+.reveal-letter-button {
+  animation: landingRise 600ms ease both;
+}
+
 .puzzle-layout {
   display: grid;
   grid-template-columns: minmax(20rem, 34rem) minmax(17rem, 1fr);
@@ -1150,7 +1253,13 @@ textarea:focus-visible {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 2.5rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: color 300ms ease;
   letter-spacing: 0;
+}
+
+.letter-paper h2:hover {
+  color: #9e6b2f;
 }
 
 .letter-body {
@@ -1480,6 +1589,10 @@ textarea:focus-visible {
     flex: 1;
   }
 
+  .reveal-container {
+    height: min(calc(100vh - 14rem), 70vw, 28rem);
+  }
+
   .puzzle-layout {
     grid-template-columns: 1fr;
   }
@@ -1518,6 +1631,65 @@ textarea:focus-visible {
 
   .memory-editor-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.landscape-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 9, 26, 0.97);
+  backdrop-filter: blur(20px);
+  text-align: center;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  body.is-entered .landscape-warning {
+    display: flex;
+  }
+}
+
+.landscape-warning-inner {
+  display: grid;
+  gap: 1.25rem;
+  padding: 2rem;
+}
+
+.landscape-rotate-icon {
+  display: block;
+  color: var(--rose);
+  font-size: 4rem;
+  line-height: 1;
+  animation: rotateHint 2.4s ease-in-out infinite;
+}
+
+.landscape-message {
+  margin: 0;
+  color: rgba(247, 241, 232, 0.8);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  line-height: 1.8;
+}
+
+.landscape-message strong {
+  color: var(--rose);
+  font-style: italic;
+}
+
+@keyframes rotateHint {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+
+  40% {
+    transform: rotate(90deg);
+  }
+
+  60% {
+    transform: rotate(90deg);
   }
 }
 

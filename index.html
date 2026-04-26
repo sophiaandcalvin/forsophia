@@ -49,34 +49,30 @@
           </div>
           <div class="top-actions">
             <button id="openAlbumButton" class="secondary-button album-unlock-button" type="button" hidden>Open album</button>
-            <button id="openPuzzleButton" class="secondary-button" type="button" disabled>Puzzle locked</button>
+            <button id="openPuzzleButton" class="secondary-button" type="button" disabled>Gift locked</button>
             <button id="openLetterButton" class="secondary-button" type="button">Read letter</button>
             <button id="openAdminButton" class="secondary-button" type="button" hidden>Admin</button>
           </div>
         </header>
 
-        <div class="constellation-hint">Click a star to open a memory.</div>
+        <div class="constellation-hint">Each star holds a little moment, kept here just for you.</div>
       </section>
 
       <section id="puzzleScreen" class="screen puzzle-screen" aria-labelledby="puzzleTitle">
-        <div class="tool-shell">
-          <header class="screen-header">
+        <div class="reveal-shell">
+          <header class="reveal-header">
             <div>
-              <p class="overline">Unlocked</p>
-              <h2 id="puzzleTitle">One quiet picture</h2>
+              <p class="overline">A gift for you</p>
+              <h2 id="puzzleTitle">Something to uncover</h2>
             </div>
-            <div class="header-actions">
-              <button id="shufflePuzzleButton" class="secondary-button" type="button">Shuffle</button>
-              <button id="closePuzzleButton" class="secondary-button" type="button">Back to stars</button>
-            </div>
+            <button id="closePuzzleButton" class="secondary-button" type="button">Back to stars</button>
           </header>
-          <div class="puzzle-layout">
-            <div id="puzzleBoard" class="puzzle-board" aria-label="Puzzle board"></div>
-            <aside class="puzzle-panel">
-              <h3>Put the pieces back together.</h3>
-              <p>Click one piece, then another, to swap them. The letter is always available; this is just a small extra moment.</p>
-              <button id="puzzleLetterButton" class="primary-button" type="button">Read the letter</button>
-            </aside>
+          <div class="reveal-stage">
+            <div class="reveal-container" id="revealContainer">
+              <img id="revealPhoto" class="reveal-photo" src="" alt="A moment for you">
+              <canvas id="revealCanvas" class="reveal-canvas"></canvas>
+            </div>
+            <button id="puzzleLetterButton" class="primary-button reveal-letter-button" type="button" hidden>Read the letter</button>
           </div>
         </div>
       </section>
@@ -281,10 +277,10 @@
         <section class="admin-section">
           <h3>Puzzle and letter</h3>
           <label>
-            Puzzle image
+            Reveal photo
             <input id="adminPuzzleImage" type="file" accept="image/*">
           </label>
-          <button id="clearPuzzleImageButton" class="secondary-button" type="button">Clear puzzle image</button>
+          <button id="clearPuzzleImageButton" class="secondary-button" type="button">Clear reveal photo</button>
           <label>
             Letter title
             <input id="adminLetterTitle" type="text" required>
@@ -331,6 +327,13 @@
         </section>
       </form>
     </aside>
+
+    <div id="landscapeWarning" class="landscape-warning" aria-hidden="true">
+      <div class="landscape-warning-inner">
+        <span class="landscape-rotate-icon" aria-hidden="true">&#8635;</span>
+        <p class="landscape-message">This is best experienced in<br><strong>portrait mode.</strong><br>Please rotate your phone.</p>
+      </div>
+    </div>
 
     <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
 
