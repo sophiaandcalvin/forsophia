@@ -55,7 +55,8 @@ Open `/admin` to show the admin dashboard. The main experience does not show an 
 - Once every hidden moment is found, an `Open album` button appears so she can browse all memories while the background music keeps playing.
 - The letter is always available from the constellation header and supports three inline photos.
 - The admin dashboard can send a test invitation email through `/api/send-test-email` when you are signed in. The endpoint verifies the Supabase session before using SES.
-- Love Lottery progress is saved in `localStorage` immediately. When Supabase is configured and you are signed in, the app also syncs that progress to `public.love_lottery_progress`. Public visitors can read the saved progress, but only the authenticated owner can write it under the default RLS policies.
+- Love Lottery progress is saved in `localStorage` immediately and also syncs to `public.love_lottery_progress` when Supabase is configured. The owner still creates the row first, but public visitors can then update the shared progress record for picks, pinned dates, and date edits through the app.
+- The Love Lottery "Up to 3 picks" list now only shows items after `Mark selected` is pressed. A spin by itself stays a draft and does not become one of the saved daily picks until it is marked.
 - Wishlist items save locally first and sync to `public.wishlist_items` when Supabase is configured. The wishlist table allows public read/add/update so Sophia can add links from the public page without a login.
 
 The admin panel uses Supabase email/password auth with magic-link fallback. Add yourself as a user through Supabase Auth, then sign in from `/admin` to save changes online.

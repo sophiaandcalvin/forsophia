@@ -13,6 +13,8 @@
   --paper: #fff6ea;
   --paper-ink: #243042;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --dock-mobile-height: 5.5rem;
+  --dock-desktop-width: 7rem;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -97,7 +99,7 @@ button:disabled {
 .dashboard-screen,
 .randomizer-screen {
   overflow: auto;
-  padding: 2rem;
+  padding: 2rem 2rem calc(2rem + var(--dock-mobile-height));
 }
 
 .dashboard-screen {
@@ -135,6 +137,48 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.important-dates-panel {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.8rem;
+  background:
+    radial-gradient(circle at top right, rgba(246, 166, 186, 0.14), transparent 15rem),
+    rgba(7, 11, 23, 0.52);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.important-dates-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+}
+
+.important-dates-header h2 {
+  margin: 0.2rem 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 500;
+}
+
+.important-dates-copy,
+.important-dates-empty,
+.today-picks-empty {
+  margin: 0;
+  color: rgba(247, 241, 232, 0.72);
+  line-height: 1.55;
+}
+
+.important-dates-list {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
 .dashboard-tile {
@@ -182,6 +226,13 @@ button:disabled {
     rgba(7, 11, 23, 0.62);
 }
 
+.dashboard-tile-dates {
+  background:
+    radial-gradient(circle at 72% 22%, rgba(148, 215, 228, 0.2), transparent 11rem),
+    radial-gradient(circle at 24% 76%, rgba(243, 211, 134, 0.15), transparent 12rem),
+    rgba(7, 11, 23, 0.62);
+}
+
 .dashboard-tile-kicker,
 .dashboard-tile-title,
 .dashboard-tile-copy {
@@ -219,12 +270,26 @@ button:disabled {
   align-items: flex-start;
   justify-content: center;
   overflow: auto;
-  padding: 2rem;
+  padding: 2rem 2rem calc(2rem + var(--dock-mobile-height));
+}
+
+.dates-screen {
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 2rem 2rem calc(2rem + var(--dock-mobile-height));
 }
 
 .wishlist-shell {
   display: grid;
   width: min(78rem, 100%);
+  gap: 1rem;
+  padding-bottom: 5rem;
+}
+
+.dates-shell {
+  display: grid;
+  width: min(72rem, 100%);
   gap: 1rem;
   padding-bottom: 5rem;
 }
@@ -236,11 +301,85 @@ button:disabled {
   gap: 1rem;
 }
 
+.dates-header,
+.dates-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .wishlist-header h1 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 500;
+}
+
+.dates-header h1,
+.dates-section-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+}
+
+.dates-header h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.dates-section-heading h2 {
+  margin-top: 0.2rem;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+}
+
+.dates-creator,
+.dates-list-section {
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.9rem;
+  background: rgba(8, 12, 24, 0.52);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.date-creator-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.date-creator-form[hidden] {
+  display: none;
+}
+
+.date-creator-form label {
+  display: grid;
+  gap: 0.42rem;
+  color: rgba(247, 241, 232, 0.86);
+}
+
+.date-creator-form input {
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+.date-editor-field select {
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+.dates-list {
+  display: grid;
+  gap: 0.8rem;
 }
 
 .wishlist-tabs {
@@ -417,6 +556,19 @@ button:disabled {
 .wishlist-card-copy h3 {
   margin: 0;
   font-size: 1rem;
+}
+
+.wishlist-item-note,
+.date-plan-note {
+  margin: 0;
+  color: rgba(247, 241, 232, 0.68);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.wishlist-empty-link {
+  color: rgba(247, 241, 232, 0.55);
+  font-size: 0.82rem;
 }
 
 .wishlist-card-copy a,
@@ -667,6 +819,123 @@ button:disabled {
   backdrop-filter: blur(6px);
 }
 
+.important-date-card,
+.date-plan-chip,
+.date-plan-card,
+.today-pick-card,
+.selected-date-note {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  gap: 0.28rem;
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(11, 16, 31, 0.78);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.important-date-card:hover,
+.important-date-card:focus-visible,
+.date-plan-chip:hover,
+.date-plan-chip:focus-visible,
+.date-plan-card:hover,
+.today-pick-card:hover,
+.today-pick-card:focus-visible,
+.selected-date-note:hover,
+.selected-date-note:focus-visible {
+  border-color: rgba(243, 211, 134, 0.42);
+  transform: translateY(-0.08rem);
+  background: rgba(16, 22, 41, 0.9);
+}
+
+.important-date-card span,
+.date-plan-chip span,
+.date-plan-card span,
+.today-pick-card span,
+.selected-date-note span {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.important-date-card strong,
+.date-plan-chip strong,
+.date-plan-card strong,
+.today-pick-card strong,
+.selected-date-note strong {
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.important-date-card em,
+.date-plan-chip em,
+.date-plan-card em,
+.today-pick-card em,
+.selected-date-note em {
+  color: rgba(247, 241, 232, 0.72);
+  font-size: 0.82rem;
+  font-style: normal;
+}
+
+.selected-date-note {
+  max-width: min(20rem, 100%);
+  padding: 0.7rem 0.9rem;
+  border-color: rgba(243, 211, 134, 0.18);
+}
+
+.date-plan-card,
+.important-date-card,
+.date-plan-chip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.date-plan-card-copy {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.date-plan-edit-button {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  padding-inline: 0.8rem;
+}
+
+.date-plan-links {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.date-plan-link-row,
+.date-editor-map-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.date-plan-link-row a,
+.date-editor-map-links a {
+  color: var(--cyan);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.date-plan-link-row a:hover,
+.date-editor-map-links a:hover {
+  text-decoration: underline;
+}
+
 .spin-orb-button {
   appearance: none;
   -webkit-appearance: none;
@@ -735,6 +1004,40 @@ button:disabled {
   color: rgba(255, 246, 234, 0.78);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(10px);
+}
+
+.next-date-log-list,
+.today-picks-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.today-picks-shell {
+  display: grid;
+  gap: 0.75rem;
+  width: min(42rem, 100%);
+  margin: 0 auto;
+}
+
+.today-picks-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.today-picks-header h2 {
+  margin: 0.2rem 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.today-pick-card.is-active {
+  border-color: rgba(246, 166, 186, 0.52);
+  background:
+    radial-gradient(circle at top right, rgba(246, 166, 186, 0.12), transparent 9rem),
+    rgba(15, 20, 36, 0.92);
 }
 
 .next-date-log span {
@@ -825,6 +1128,16 @@ button:disabled {
   background: rgba(7, 11, 23, 0.42);
   color: rgba(255, 246, 234, 0.68);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.love-progress-star-note {
+  font-size: 0.62rem;
+  line-height: 1.2;
+  color: rgba(247, 241, 232, 0.72);
+}
+
+.love-progress-star.is-claimed {
+  border-color: rgba(243, 211, 134, 0.34);
 }
 
 .love-progress-star-icon {
@@ -1585,6 +1898,7 @@ textarea:focus-visible {
 }
 
 body[data-screen="dashboard"] .music-player,
+body[data-screen="dates"] .music-player,
 body[data-screen="randomizer"] .music-player {
   display: none;
 }
@@ -1622,6 +1936,96 @@ body[data-screen="randomizer"] .music-player {
 
 .volume-control input {
   width: 7rem;
+}
+
+.date-editor-card {
+  position: relative;
+  width: min(28rem, calc(100% - 2rem));
+  margin: auto;
+  padding: 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(18, 24, 42, 0.98), rgba(10, 14, 26, 0.98));
+  box-shadow: var(--shadow);
+}
+
+.date-editor-item-name {
+  margin: 0.4rem 0 1rem;
+  color: rgba(247, 241, 232, 0.78);
+  line-height: 1.55;
+}
+
+.date-editor-field,
+.date-editor-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.date-editor-field input {
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+.date-editor-map-links span {
+  color: rgba(247, 241, 232, 0.66);
+  font-size: 0.82rem;
+}
+
+.milestone-reward-fields[hidden] {
+  display: none;
+}
+
+.global-dock {
+  position: fixed;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  left: 0.9rem;
+  z-index: 45;
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.1rem;
+  background: rgba(7, 11, 23, 0.84);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.dock-toggle,
+.dock-link {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  flex: 1;
+  min-height: 4rem;
+  padding: 0.55rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: var(--ink);
+  text-align: center;
+}
+
+.dock-link-icon {
+  font-size: 1rem;
+}
+
+.dock-link span:last-child,
+.dock-toggle span:last-child {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dock-link.is-active {
+  border-color: rgba(243, 211, 134, 0.24);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modal,
@@ -2396,7 +2800,7 @@ body[data-screen="randomizer"] .music-player {
 
   .dashboard-screen,
   .randomizer-screen {
-    padding: 1rem;
+    padding: 1rem 1rem max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
   }
 
   .randomizer-screen {
@@ -2417,11 +2821,24 @@ body[data-screen="randomizer"] .music-player {
     grid-template-columns: 1fr;
   }
 
+  .important-dates-header,
+  .today-picks-header {
+    display: grid;
+  }
+
   .wishlist-screen {
     padding: 1rem 1.35rem max(5rem, calc(env(safe-area-inset-bottom) + 4rem)) 1.1rem;
   }
 
+  .dates-screen {
+    padding: 1rem 1.35rem max(5rem, calc(env(safe-area-inset-bottom) + 4rem)) 1.1rem;
+  }
+
   .wishlist-shell {
+    max-width: calc(100vw - 2.45rem);
+  }
+
+  .dates-shell {
     max-width: calc(100vw - 2.45rem);
   }
 
@@ -2442,6 +2859,12 @@ body[data-screen="randomizer"] .music-player {
     flex-direction: column;
   }
 
+  .date-plan-card,
+  .important-date-card,
+  .date-plan-chip {
+    display: grid;
+  }
+
   .dashboard-tile {
     min-height: 14rem;
   }
@@ -2449,6 +2872,12 @@ body[data-screen="randomizer"] .music-player {
   .dashboard-tile-title {
     margin-top: 3.5rem;
     font-size: 1.9rem;
+  }
+
+  .global-dock {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
   }
 
   .randomizer-header {
@@ -2682,6 +3111,27 @@ body[data-screen="randomizer"] .music-player {
 
   .memory-editor-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 961px) {
+  .dashboard-screen,
+  .randomizer-screen,
+  .wishlist-screen,
+  .dates-screen {
+    padding-right: 2.5rem;
+    padding-bottom: 2rem;
+    padding-left: calc(2rem + var(--dock-desktop-width));
+  }
+
+  .global-dock {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 1rem;
+    width: calc(var(--dock-desktop-width) - 1rem);
+    flex-direction: column;
+    transform: translateY(-50%);
   }
 }
 

@@ -35,9 +35,12 @@ with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
 create table if not exists public.love_lottery_progress (
   page_id text primary key references public.constellation_pages(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
-  progress jsonb not null default '{"markedIds":[],"completionCount":0,"log":[],"nextDatePlan":null}'::jsonb,
+  progress jsonb not null default '{"markedIds":[],"completionCount":0,"log":[],"selections":[],"pinnedDatePlans":[],"claimedRewards":[]}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+alter table public.love_lottery_progress
+alter column progress set default '{"markedIds":[],"completionCount":0,"log":[],"selections":[],"pinnedDatePlans":[],"claimedRewards":[]}'::jsonb;
 
 alter table public.love_lottery_progress enable row level security;
 
@@ -63,11 +66,23 @@ to authenticated
 using ((select auth.uid()) is not null and owner_id = (select auth.uid()))
 with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
 
+drop policy if exists "Public can update love lottery progress" on public.love_lottery_progress;
+create policy "Public can update love lottery progress"
+on public.love_lottery_progress
+for update
+to anon, authenticated
+using (true)
+with check (
+  page_id is not null
+  and owner_id is not null
+);
+
 create table if not exists public.wishlist_items (
   id uuid primary key default gen_random_uuid(),
   page_id text not null,
   item_name text not null,
-  item_url text not null,
+  item_url text not null default '',
+  note text not null default '',
   added_by text not null default 'Sophia' check (added_by in ('Sophia', 'Calvin')),
   purchased boolean not null default false,
   created_at timestamptz not null default now(),
@@ -76,6 +91,9 @@ create table if not exists public.wishlist_items (
 
 alter table public.wishlist_items
 add column if not exists added_by text not null default 'Sophia';
+
+alter table public.wishlist_items
+add column if not exists note text not null default '';
 
 alter table public.wishlist_items
 drop constraint if exists wishlist_items_added_by_check;
@@ -100,7 +118,7 @@ for insert
 to anon, authenticated
 with check (
   length(trim(item_name)) between 1 and 120
-  and item_url ~* '^https?://'
+  and (item_url = '' or item_url ~* '^https?://')
   and added_by in ('Sophia', 'Calvin')
 );
 
@@ -112,7 +130,7 @@ to anon, authenticated
 using (true)
 with check (
   length(trim(item_name)) between 1 and 120
-  and item_url ~* '^https?://'
+  and (item_url = '' or item_url ~* '^https?://')
   and added_by in ('Sophia', 'Calvin')
 );
 

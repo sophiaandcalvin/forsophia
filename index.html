@@ -33,7 +33,71 @@
               <span class="dashboard-tile-title">Little Wants</span>
               <span class="dashboard-tile-copy">Save gift links, peek at them, and track what has been gotten.</span>
             </button>
+            <button id="openDatesButton" class="dashboard-tile dashboard-tile-dates" type="button">
+              <span class="dashboard-tile-kicker">Dates</span>
+              <span class="dashboard-tile-title">Our Plans</span>
+              <span class="dashboard-tile-copy">See every pinned date, make a new one, and open locations in maps.</span>
+            </button>
           </div>
+          <section id="importantDatesPanel" class="important-dates-panel" aria-labelledby="importantDatesTitle">
+            <div class="important-dates-header">
+              <div>
+                <p class="overline">Dates</p>
+                <h2 id="importantDatesTitle">Important dates</h2>
+              </div>
+              <p class="important-dates-copy">Pinned Love Lottery dates and manual plans also live in the full Dates page.</p>
+            </div>
+            <div id="importantDatesList" class="important-dates-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="datesScreen" class="screen dates-screen" aria-labelledby="datesTitle">
+        <div class="dates-shell">
+          <header class="dates-header">
+            <button id="datesHomeButton" class="icon-button" type="button" aria-label="Back to dashboard">
+              <span aria-hidden="true">&lt;</span>
+            </button>
+            <div>
+              <p class="overline">Dates</p>
+              <h1 id="datesTitle">Our Plans</h1>
+            </div>
+          </header>
+
+          <section class="dates-creator" aria-labelledby="datesCreatorTitle">
+            <div class="dates-section-heading">
+              <div>
+                <p class="overline">Create one</p>
+                <h2 id="datesCreatorTitle">Add a date</h2>
+              </div>
+              <button id="openDateCreatorButton" class="secondary-button" type="button" aria-expanded="false">Add a date</button>
+            </div>
+            <form id="dateCreatorForm" class="date-creator-form" hidden>
+              <label>
+                Date name
+                <input id="dateCreatorNameInput" type="text" maxlength="120" placeholder="Sunset picnic, dinner, museum..." required>
+              </label>
+              <label>
+                Date and time
+                <input id="dateCreatorDateInput" type="datetime-local" required>
+              </label>
+              <label>
+                Location
+                <input id="dateCreatorLocationInput" type="text" maxlength="180" placeholder="Restaurant, address, park, city...">
+              </label>
+              <button class="primary-button" type="submit">Add date</button>
+            </form>
+          </section>
+
+          <section class="dates-list-section" aria-labelledby="allDatesTitle">
+            <div class="dates-section-heading">
+              <div>
+                <p class="overline">All dates</p>
+                <h2 id="allDatesTitle">Pinned and planned</h2>
+              </div>
+            </div>
+            <div id="datesList" class="dates-list"></div>
+          </section>
         </div>
       </section>
 
@@ -115,10 +179,18 @@
             <section id="randomizerStage" class="randomizer-stage" aria-live="polite">
               <h2 id="randomizerResult">Today</h2>
               <p id="randomizerTask" class="randomizer-task" hidden></p>
+              <button id="selectedDateNote" class="selected-date-note" type="button" hidden></button>
               <button id="spinDateButton" class="spin-orb-button" type="button">Spin</button>
               <button id="markDateButton" class="secondary-button mark-selected-button" type="button" disabled>Mark selected</button>
             </section>
           </div>
+          <section class="today-picks-shell" aria-labelledby="todayPicksTitle">
+            <div class="today-picks-header">
+              <p class="overline">Today</p>
+              <h2 id="todayPicksTitle">Up to 3 picks for today</h2>
+            </div>
+            <div id="todayPicksList" class="today-picks-list"></div>
+          </section>
           <div id="nextDateLog" class="next-date-log" hidden></div>
           <div class="love-progress-shell" aria-label="Love Lottery progress">
             <div class="love-progress-labels">
@@ -148,6 +220,71 @@
             <span id="activityCount" class="activity-count">0 / 500 marked</span>
           </div>
           <div id="activityList" class="activity-list"></div>
+        </section>
+      </div>
+
+      <div id="dateEditorModal" class="modal date-editor-modal" role="dialog" aria-modal="true" aria-labelledby="dateEditorTitle" hidden>
+        <div class="modal-backdrop" data-close-date-editor></div>
+        <section class="date-editor-card" aria-labelledby="dateEditorTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close date editor" data-close-date-editor>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">Date note</p>
+          <h2 id="dateEditorTitle">Edit date</h2>
+          <p id="dateEditorItemName" class="date-editor-item-name"></p>
+          <label class="date-editor-field">
+            Date name
+            <input id="dateEditorNameInput" type="text" maxlength="120">
+          </label>
+          <label class="date-editor-field">
+            Date and time
+            <input id="dateEditorInput" type="datetime-local">
+          </label>
+          <label class="date-editor-field">
+            Location
+            <input id="dateEditorLocationInput" type="text" maxlength="180" placeholder="Restaurant, address, park, city...">
+          </label>
+          <div id="dateEditorMapLinks" class="date-editor-map-links"></div>
+          <div class="date-editor-actions">
+            <button id="saveDateEditorButton" class="primary-button" type="button">Save date</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="milestoneRewardModal" class="modal milestone-reward-modal" role="dialog" aria-modal="true" aria-labelledby="milestoneRewardTitle" hidden>
+        <div class="modal-backdrop" data-close-milestone-reward></div>
+        <section class="date-editor-card milestone-reward-card" aria-labelledby="milestoneRewardTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close reward editor" data-close-milestone-reward>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">Milestone reward</p>
+          <h2 id="milestoneRewardTitle">Choose your reward</h2>
+          <p id="milestoneRewardEarnedText" class="date-editor-item-name"></p>
+          <label class="date-editor-field">
+            Reward type
+            <select id="milestoneRewardTypeSelect">
+              <option value="date">Date</option>
+              <option value="gift">Gift</option>
+              <option value="trip">Trip</option>
+            </select>
+          </label>
+          <label class="date-editor-field">
+            Name
+            <input id="milestoneRewardNameInput" type="text" maxlength="120" placeholder="Date night, gift idea, weekend trip...">
+          </label>
+          <div id="milestoneRewardDateFields" class="milestone-reward-fields">
+            <label class="date-editor-field">
+              Date and time
+              <input id="milestoneRewardDateInput" type="datetime-local">
+            </label>
+            <label class="date-editor-field">
+              Location
+              <input id="milestoneRewardLocationInput" type="text" maxlength="180" placeholder="Restaurant, city, address, hotel...">
+            </label>
+          </div>
+          <div class="date-editor-actions">
+            <button id="saveMilestoneRewardButton" class="primary-button" type="button">Create reward</button>
+          </div>
         </section>
       </div>
 
@@ -241,6 +378,29 @@
         <input id="volumeInput" type="range" min="0" max="1" step="0.01" value="0.35">
       </label>
     </aside>
+
+    <nav id="globalDock" class="global-dock" aria-label="Quick navigation">
+      <button id="dockToggleButton" class="dock-toggle" type="button" aria-label="Go home">
+        <span aria-hidden="true">⌂</span>
+        <span>Home</span>
+      </button>
+      <button class="dock-link" type="button" data-dock-target="dates">
+        <span class="dock-link-icon" aria-hidden="true">✦</span>
+        <span>Dates</span>
+      </button>
+      <button class="dock-link" type="button" data-dock-target="randomizer">
+        <span class="dock-link-icon" aria-hidden="true">♡</span>
+        <span>Love Lottery</span>
+      </button>
+      <button class="dock-link" type="button" data-dock-target="constellation">
+        <span class="dock-link-icon" aria-hidden="true">✧</span>
+        <span>Constellation</span>
+      </button>
+      <button class="dock-link" type="button" data-dock-target="wishlist">
+        <span class="dock-link-icon" aria-hidden="true">☰</span>
+        <span>Wish List</span>
+      </button>
+    </nav>
 
     <div id="memoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle" hidden>
       <div class="modal-backdrop" data-close-modal></div>

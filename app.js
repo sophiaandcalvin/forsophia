@@ -386,13 +386,6 @@ const DATE_PLAN_IDEAS = [
   "boba and board games", "thrift store challenge", "rooftop view night", "aquarium day", "spa night at home",
 ];
 
-const DATE_PREP_TASKS = [
-  "pick the day and time",
-  "choose one outfit idea",
-  "save one place to go",
-  "write Sophia a tiny invite",
-];
-
 const LOVE_LOTTERY_ACTIVITIES = buildLoveLotteryActivities();
 
 const state = {
@@ -422,6 +415,8 @@ const state = {
     starHover: 0,
     starClick: 0,
   },
+  activeDateEditorPlanId: null,
+  activeMilestoneReward: null,
   revealComplete: false,
   revealListeners: null,
 };
@@ -430,6 +425,17 @@ const elements = {
   ambientCanvas: document.querySelector("#ambientCanvas"),
   loveTrailCanvas: document.querySelector("#loveTrailCanvas"),
   dashboardScreen: document.querySelector("#dashboardScreen"),
+  importantDatesPanel: document.querySelector("#importantDatesPanel"),
+  importantDatesList: document.querySelector("#importantDatesList"),
+  datesScreen: document.querySelector("#datesScreen"),
+  openDatesButton: document.querySelector("#openDatesButton"),
+  datesHomeButton: document.querySelector("#datesHomeButton"),
+  openDateCreatorButton: document.querySelector("#openDateCreatorButton"),
+  dateCreatorForm: document.querySelector("#dateCreatorForm"),
+  dateCreatorNameInput: document.querySelector("#dateCreatorNameInput"),
+  dateCreatorDateInput: document.querySelector("#dateCreatorDateInput"),
+  dateCreatorLocationInput: document.querySelector("#dateCreatorLocationInput"),
+  datesList: document.querySelector("#datesList"),
   wishlistScreen: document.querySelector("#wishlistScreen"),
   randomizerScreen: document.querySelector("#randomizerScreen"),
   openSophiaPageButton: document.querySelector("#openSophiaPageButton"),
@@ -446,6 +452,8 @@ const elements = {
   randomizerStage: document.querySelector("#randomizerStage"),
   randomizerResult: document.querySelector("#randomizerResult"),
   randomizerTask: document.querySelector("#randomizerTask"),
+  selectedDateNote: document.querySelector("#selectedDateNote"),
+  todayPicksList: document.querySelector("#todayPicksList"),
   openActivityListButton: document.querySelector("#openActivityListButton"),
   activityListModal: document.querySelector("#activityListModal"),
   spinDateButton: document.querySelector("#spinDateButton"),
@@ -458,8 +466,23 @@ const elements = {
   loveProgressTrack: document.querySelector("#loveProgressTrack"),
   loveProgressFill: document.querySelector("#loveProgressFill"),
   loveProgressStars: document.querySelector("#loveProgressStars"),
+  milestoneRewardModal: document.querySelector("#milestoneRewardModal"),
+  milestoneRewardEarnedText: document.querySelector("#milestoneRewardEarnedText"),
+  milestoneRewardTypeSelect: document.querySelector("#milestoneRewardTypeSelect"),
+  milestoneRewardNameInput: document.querySelector("#milestoneRewardNameInput"),
+  milestoneRewardDateFields: document.querySelector("#milestoneRewardDateFields"),
+  milestoneRewardDateInput: document.querySelector("#milestoneRewardDateInput"),
+  milestoneRewardLocationInput: document.querySelector("#milestoneRewardLocationInput"),
+  saveMilestoneRewardButton: document.querySelector("#saveMilestoneRewardButton"),
   nextDateLog: document.querySelector("#nextDateLog"),
   loveLotteryAudio: document.querySelector("#loveLotteryAudio"),
+  dateEditorModal: document.querySelector("#dateEditorModal"),
+  dateEditorItemName: document.querySelector("#dateEditorItemName"),
+  dateEditorNameInput: document.querySelector("#dateEditorNameInput"),
+  dateEditorInput: document.querySelector("#dateEditorInput"),
+  dateEditorLocationInput: document.querySelector("#dateEditorLocationInput"),
+  dateEditorMapLinks: document.querySelector("#dateEditorMapLinks"),
+  saveDateEditorButton: document.querySelector("#saveDateEditorButton"),
   landingScreen: document.querySelector("#landingScreen"),
   openingScreen: document.querySelector("#openingScreen"),
   constellationScreen: document.querySelector("#constellationScreen"),
@@ -561,6 +584,9 @@ const elements = {
   loveLotteryMusicInput: document.querySelector("#loveLotteryMusicInput"),
   loveLotteryMusicVolume: document.querySelector("#loveLotteryMusicVolume"),
   clearLoveLotteryMusicButton: document.querySelector("#clearLoveLotteryMusicButton"),
+  globalDock: document.querySelector("#globalDock"),
+  dockToggleButton: document.querySelector("#dockToggleButton"),
+  dockLinks: Array.from(document.querySelectorAll("[data-dock-target]")),
   toastHost: document.querySelector("#toastHost"),
 };
 
@@ -790,11 +816,87 @@ function saveLoveLotteryProgress() {
 
 function normalizeLoveLotteryProgress(progress = {}) {
   const markedIds = Array.isArray(progress.markedIds) ? progress.markedIds : [];
+  const legacyPinnedPlans = progress.nextDatePlan ? [progress.nextDatePlan] : [];
   return {
     markedIds,
     completionCount: clampNumber(Number(progress.completionCount), 0, 500, markedIds.length),
     log: Array.isArray(progress.log) ? progress.log : [],
-    nextDatePlan: progress.nextDatePlan || null,
+    selections: normalizeLoveLotterySelections(progress.selections),
+    pinnedDatePlans: normalizeLoveLotteryDatePlans(progress.pinnedDatePlans?.length ? progress.pinnedDatePlans : legacyPinnedPlans),
+    claimedRewards: normalizeLoveLotteryClaimedRewards(progress.claimedRewards),
+  };
+}
+
+function normalizeLoveLotteryClaimedRewards(rewards) {
+  return (Array.isArray(rewards) ? rewards : [])
+    .map((reward) => {
+      const milestone = Number(reward?.milestone);
+      const type = reward?.type;
+      if (!Number.isFinite(milestone) || !["date", "gift", "trip"].includes(type)) {
+        return null;
+      }
+
+      return {
+        milestone,
+        type,
+        claimedAt: reward.claimedAt || new Date().toISOString(),
+        label: reward.label || "",
+        linkedId: reward.linkedId || "",
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeLoveLotterySelections(selections) {
+  return (Array.isArray(selections) ? selections : [])
+    .map((selection, index) => {
+      const activity = getLoveLotteryActivity(selection.activityId || selection.id);
+      if (!activity) {
+        return null;
+      }
+
+      return {
+        id: selection.id || crypto.randomUUID?.() || `selection-${Date.now()}-${index}`,
+        activityId: activity.id,
+        label: selection.label || activity.label,
+        category: selection.category || activity.category,
+        selectedAt: selection.selectedAt || selection.loggedAt || new Date().toISOString(),
+        datePlan: activity.category === "date" ? normalizeLoveLotteryDatePlan(selection.datePlan || selection.nextDatePlan, activity) : null,
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeLoveLotteryDatePlans(plans) {
+  return (Array.isArray(plans) ? plans : [])
+    .map((plan) => normalizeLoveLotteryDatePlan(plan, getLoveLotteryActivity(plan?.activityId || plan?.id)))
+    .filter((plan) => plan?.scheduledFor);
+}
+
+function normalizeLoveLotteryDatePlan(plan, activity) {
+  if (!plan && !activity) {
+    return null;
+  }
+
+  const fallbackDate = getDefaultDatePlanTimestamp(1);
+  const scheduledFor = plan?.scheduledFor && !Number.isNaN(new Date(plan.scheduledFor).valueOf())
+    ? new Date(plan.scheduledFor).toISOString()
+    : fallbackDate;
+  const weeks = clampNumber(Number(plan?.weeks), 1, 3, 1);
+  const resolvedActivity = activity || getLoveLotteryActivity(plan?.activityId || plan?.id);
+
+  return {
+    planId: plan?.planId || plan?.id || crypto.randomUUID?.() || `date-plan-${Date.now()}`,
+    activityId: plan?.activityId || resolvedActivity?.id || "",
+    label: plan?.label || resolvedActivity?.label || "Date idea",
+    task: plan?.task || resolvedActivity?.task || "",
+    location: plan?.location || "",
+    source: plan?.source || (resolvedActivity ? "lottery" : "manual"),
+    rewardMilestone: Number.isFinite(Number(plan?.rewardMilestone)) ? Number(plan.rewardMilestone) : null,
+    note: plan?.note || "",
+    weeks,
+    scheduledFor,
+    createdAt: plan?.createdAt || new Date().toISOString(),
   };
 }
 
@@ -818,12 +920,13 @@ function normalizeWishlistItems(items) {
       page_id: item.page_id || PAGE_ID,
       item_name: item.item_name || item.name || "",
       item_url: item.item_url || item.url || "",
+      note: item.note || "",
       added_by: normalizeWishlistPerson(item.added_by || item.addedBy || "Sophia"),
       purchased: Boolean(item.purchased),
       created_at: item.created_at || new Date().toISOString(),
       updated_at: item.updated_at || new Date().toISOString(),
     }))
-    .filter((item) => item.item_name && /^https?:\/\//i.test(item.item_url));
+    .filter((item) => item.item_name && (!item.item_url || /^https?:\/\//i.test(item.item_url)));
 }
 
 function normalizeWishlistPerson(value) {
@@ -860,14 +963,12 @@ function buildLoveLotteryActivities() {
 }
 
 function buildDatePlanActivities() {
-  return DATE_PLAN_IDEAS.flatMap((idea, ideaIndex) =>
-    DATE_PREP_TASKS.map((task, taskIndex) => ({
-      id: `date-${ideaIndex + 1}-${taskIndex + 1}`,
-      label: `Plan a ${idea} for Sophia: ${task}`,
-      task: `Small task today: ${task}.`,
-      category: "date",
-    }))
-  );
+  return DATE_PLAN_IDEAS.map((idea, index) => ({
+    id: `date-${index + 1}`,
+    label: `Plan a ${idea} for Sophia`,
+    task: "Auto-scheduled 1, 2, or 3 weeks out. Mark selected to pin it to Dates.",
+    category: "date",
+  }));
 }
 
 function saveData() {
@@ -938,6 +1039,9 @@ function getScreenForPath() {
   const path = getNormalizedPath();
   if (path === "/forsophia" || path === "/admin") {
     return "landing";
+  }
+  if (path === "/dates") {
+    return "dates";
   }
   if (path === "/love-lottery") {
     return "randomizer";
@@ -1063,20 +1167,34 @@ async function loadRemoteLoveLotteryProgress() {
 }
 
 async function saveRemoteLoveLotteryProgress() {
-  if (!SUPABASE_CONFIGURED || !state.session?.user?.id) {
-    return { saved: false, reason: "Sign in before saving Love Lottery progress online." };
+  if (!SUPABASE_CONFIGURED) {
+    return { saved: false, reason: "Supabase is not configured." };
   }
 
-  const payload = {
-    page_id: PAGE_ID,
-    owner_id: state.session.user.id,
-    progress: normalizeLoveLotteryProgress(state.loveLottery),
-    updated_at: new Date().toISOString(),
-  };
+  const progress = normalizeLoveLotteryProgress(state.loveLottery);
+  const updated_at = new Date().toISOString();
+  let error = null;
 
-  const { error } = await supabase
-    .from("love_lottery_progress")
-    .upsert(payload, { onConflict: "page_id" });
+  if (state.session?.user?.id) {
+    const payload = {
+      page_id: PAGE_ID,
+      owner_id: state.session.user.id,
+      progress,
+      updated_at,
+    };
+
+    ({ error } = await supabase
+      .from("love_lottery_progress")
+      .upsert(payload, { onConflict: "page_id" }));
+  } else {
+    ({ error } = await supabase
+      .from("love_lottery_progress")
+      .update({
+        progress,
+        updated_at,
+      })
+      .eq("page_id", PAGE_ID));
+  }
 
   if (error) {
     state.remoteMessage = `Love Lottery progress save failed: ${error.message}`;
@@ -1094,7 +1212,7 @@ async function loadRemoteWishlistItems() {
 
   const { data, error } = await supabase
     .from("wishlist_items")
-    .select("id,page_id,item_name,item_url,added_by,purchased,created_at,updated_at")
+    .select("id,page_id,item_name,item_url,note,added_by,purchased,created_at,updated_at")
     .eq("page_id", PAGE_ID)
     .order("created_at", { ascending: false });
 
@@ -1120,10 +1238,11 @@ async function addRemoteWishlistItem(item) {
       page_id: PAGE_ID,
       item_name: item.item_name,
       item_url: item.item_url,
+      note: item.note || "",
       added_by: item.added_by,
       purchased: false,
     })
-    .select("id,page_id,item_name,item_url,added_by,purchased,created_at,updated_at")
+    .select("id,page_id,item_name,item_url,note,added_by,purchased,created_at,updated_at")
     .single();
 
   if (error) {
@@ -1143,6 +1262,7 @@ async function updateRemoteWishlistItem(item) {
     .update({
       item_name: item.item_name,
       item_url: item.item_url,
+      note: item.note || "",
       added_by: item.added_by,
       purchased: item.purchased,
       updated_at: new Date().toISOString(),
@@ -1188,6 +1308,8 @@ function renderApp() {
   elements.landingSubtext.innerHTML = escapeHtml(state.data.subtitle).replace(/\n/g, "<br>");
   renderMusic();
   renderLoveLotteryMusic();
+  renderImportantDates();
+  renderDatesPage();
   renderWishlist();
   prepareSoundEffectPlayers();
   renderHeartPhotoFrame();
@@ -1277,23 +1399,47 @@ function getHeartTilePoints() {
 
 function renderLoveLottery() {
   const marked = new Set(state.loveLottery.markedIds);
-  const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => activity.category === "shopping" || !marked.has(activity.id));
   const completedCount = getLoveLotteryCompletionCount();
   const total = LOVE_LOTTERY_ACTIVITIES.length;
+  const todaySelections = getTodayLoveLotterySelections();
+  if (!getSelectedLoveLotterySelection() && todaySelections.length) {
+    state.selectedActivityId = todaySelections[todaySelections.length - 1].id;
+  }
+  const selectedEntry = getSelectedLoveLotterySelection();
+  const selectedActivity = selectedEntry ? getLoveLotteryActivity(selectedEntry.activityId) : null;
+  const hasScheduledDate = hasScheduledDatePlan();
 
   elements.activityCount.textContent = `${completedCount} / ${total} progress`;
   elements.markDateButton.disabled =
-    !state.selectedActivityId ||
+    !selectedEntry ||
     getLoveLotterySpinsToday() >= 3 ||
-    (marked.has(state.selectedActivityId) && getLoveLotteryActivity(state.selectedActivityId)?.category !== "shopping");
+    (marked.has(selectedEntry.activityId) && selectedActivity?.category !== "shopping");
   elements.spinDateButton.disabled = getLoveLotterySpinsToday() >= 3;
   elements.spinDateButton.textContent = getLoveLotterySpinsToday() >= 3 ? "Done" : "Spin";
+  renderImportantDates();
+  renderDatesPage();
   renderLoveLotteryProgress(completedCount, total);
+  renderTodayPicks();
+  renderSelectedDateNote();
   renderNextDateLog();
-  if (!state.selectedActivityId) {
+  if (!selectedEntry) {
     elements.randomizerResult.textContent = formatLoveLotteryDate();
-    elements.randomizerTask.hidden = true;
-    elements.randomizerTask.textContent = "";
+    if (hasScheduledDate) {
+      elements.randomizerTask.hidden = false;
+      elements.randomizerTask.textContent = "A date is already scheduled, so today’s spin will skip date ideas until that plan is cleared or moved.";
+    } else {
+      elements.randomizerTask.hidden = true;
+      elements.randomizerTask.textContent = "";
+    }
+  } else {
+    elements.randomizerResult.textContent = selectedEntry.label;
+    elements.randomizerTask.hidden = false;
+    elements.randomizerTask.textContent =
+      selectedEntry.category === "date"
+        ? "Tap the date note to adjust the time. Mark selected when you want to save it to Dates."
+        : selectedEntry.category === "shopping"
+          ? "Shopping pick for today."
+          : "One of today's picked little acts of love.";
   }
 
   elements.activityList.innerHTML = "";
@@ -1303,7 +1449,7 @@ function renderLoveLottery() {
     row.type = "button";
     row.dataset.activityId = activity.id;
     row.classList.toggle("is-marked", marked.has(activity.id));
-    row.classList.toggle("is-selected", state.selectedActivityId === activity.id);
+    row.classList.toggle("is-selected", selectedEntry?.activityId === activity.id);
 
     const label = document.createElement("span");
     label.textContent = activity.label;
@@ -1348,8 +1494,9 @@ function renderWishlistCalvinList() {
     row.innerHTML = `
       <div>
         <strong>${escapeHtml(item.item_name)}</strong>
+        ${item.note ? `<p class="wishlist-item-note">${escapeHtml(item.note)}</p>` : ""}
         ${renderWishlistPersonTags(item.added_by)}
-        <a href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(getUrlHost(item.item_url))}</a>
+        ${item.item_url ? `<a href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(getUrlHost(item.item_url))}</a>` : `<span class="wishlist-empty-link">No link yet</span>`}
       </div>
       <label class="wishlist-purchased-toggle">
         <input type="checkbox" data-wishlist-purchased="${escapeAttribute(item.id)}" ${item.purchased ? "checked" : ""}>
@@ -1364,6 +1511,21 @@ function createWishlistCard(item) {
   const card = document.createElement("article");
   card.className = "wishlist-card";
   card.classList.toggle("is-purchased", item.purchased);
+  if (!item.item_url) {
+    card.innerHTML = `
+      <div class="wishlist-card-copy">
+        ${renderWishlistPersonTags(item.added_by)}
+        <h3>${escapeHtml(item.item_name)}</h3>
+        ${item.note ? `<p class="wishlist-item-note">${escapeHtml(item.note)}</p>` : ""}
+        <span class="wishlist-preview-fallback is-static">
+          <span>No link yet</span>
+          <span>Add one later</span>
+        </span>
+        ${item.purchased ? "<span class=\"wishlist-badge\">Gotten</span>" : ""}
+      </div>
+    `;
+    return card;
+  }
   card.innerHTML = `
     <a class="wishlist-preview" href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeAttribute(item.item_name)}">
       <iframe src="${escapeAttribute(item.item_url)}" title="${escapeAttribute(item.item_name)} preview" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
@@ -1379,6 +1541,7 @@ function createWishlistCard(item) {
     <div class="wishlist-card-copy">
       ${renderWishlistPersonTags(item.added_by)}
       <h3>${escapeHtml(item.item_name)}</h3>
+      ${item.note ? `<p class="wishlist-item-note">${escapeHtml(item.note)}</p>` : ""}
       <a class="wishlist-open-link" href="${escapeAttribute(item.item_url)}" target="_blank" rel="noopener noreferrer">Open link</a>
       ${item.purchased ? "<span class=\"wishlist-badge\">Gotten</span>" : ""}
     </div>
@@ -1446,6 +1609,7 @@ async function addWishlistItem(event) {
     page_id: PAGE_ID,
     item_name: name,
     item_url: url,
+    note: "",
     added_by: addedBy,
     purchased: false,
     created_at: new Date().toISOString(),
@@ -1487,7 +1651,18 @@ function getLoveLotteryActivity(activityId) {
   return LOVE_LOTTERY_ACTIVITIES.find((activity) => activity.id === activityId);
 }
 
-function getLoveLotterySpinsToday() {
+function getTodayLoveLotterySelections() {
+  const todayKey = new Date().toDateString();
+  return (Array.isArray(state.loveLottery.selections) ? state.loveLottery.selections : []).filter((entry) => {
+    if (!entry?.selectedAt) {
+      return false;
+    }
+
+    return new Date(entry.selectedAt).toDateString() === todayKey;
+  });
+}
+
+function getTodayLoveLotteryMarkedPicks() {
   const todayKey = new Date().toDateString();
   return (Array.isArray(state.loveLottery.log) ? state.loveLottery.log : []).filter((entry) => {
     if (!entry?.loggedAt) {
@@ -1495,46 +1670,442 @@ function getLoveLotterySpinsToday() {
     }
 
     return new Date(entry.loggedAt).toDateString() === todayKey;
-  }).length;
+  });
+}
+
+function getSelectedLoveLotterySelection() {
+  const todaySelections = getTodayLoveLotterySelections();
+  return todaySelections.find((entry) => entry.id === state.selectedActivityId) || null;
+}
+
+function getLoveLotterySpinsToday() {
+  return getTodayLoveLotteryMarkedPicks().length;
 }
 
 function formatLoveLotteryDate(date = new Date()) {
   return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 
-function getFutureDatePlan(activity) {
-  const weeks = Math.random() < 0.5 ? 1 : 2;
+function formatLoveLotteryDateTime(date = new Date()) {
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getDefaultDatePlanTimestamp(weeks) {
   const date = new Date();
   date.setDate(date.getDate() + weeks * 7);
+  date.setHours(19, 0, 0, 0);
+  return date.toISOString();
+}
+
+function getFutureDatePlan(activity) {
+  const weeks = [1, 2, 3][Math.floor(Math.random() * 3)];
   return {
-    id: activity.id,
+    planId: crypto.randomUUID?.() || `date-plan-${Date.now()}`,
+    activityId: activity.id,
     label: activity.label,
     task: activity.task,
+    location: "",
+    source: "lottery",
     weeks,
-    scheduledFor: date.toISOString(),
+    scheduledFor: getDefaultDatePlanTimestamp(weeks),
     createdAt: new Date().toISOString(),
   };
 }
 
 function formatDatePlan(plan) {
   const date = new Date(plan.scheduledFor);
-  return `${plan.label} in ${plan.weeks} ${plan.weeks === 1 ? "week" : "weeks"} (${formatLoveLotteryDate(date)})`;
+  return formatLoveLotteryDateTime(date);
+}
+
+function getImportantDates() {
+  return [...(state.loveLottery.pinnedDatePlans || [])].sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor));
+}
+
+function isUpcomingDatePlan(plan) {
+  return Boolean(plan?.scheduledFor) && new Date(plan.scheduledFor).valueOf() >= Date.now();
+}
+
+function hasScheduledDatePlan() {
+  return getImportantDates().some(isUpcomingDatePlan);
+}
+
+function getMapLinks(location) {
+  const query = String(location || "").trim();
+  if (!query) {
+    return null;
+  }
+
+  const encoded = encodeURIComponent(query);
+  return {
+    apple: `https://maps.apple.com/?q=${encoded}`,
+    google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+  };
+}
+
+function renderDatePlanLocation(location = "") {
+  const links = getMapLinks(location);
+  if (!links) {
+    return "";
+  }
+
+  return `
+    <div class="date-plan-links">
+      <span>${escapeHtml(location)}</span>
+      <div class="date-plan-link-row">
+        <a href="${escapeAttribute(links.apple)}" target="_blank" rel="noopener noreferrer">Apple Maps</a>
+        <a href="${escapeAttribute(links.google)}" target="_blank" rel="noopener noreferrer">Google Maps</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderImportantDates() {
+  const plans = getImportantDates();
+  elements.importantDatesList.innerHTML = "";
+
+  if (!plans.length) {
+    elements.importantDatesList.innerHTML = `<p class="important-dates-empty">No marked dates yet.</p>`;
+    return;
+  }
+
+  plans.forEach((plan) => {
+    elements.importantDatesList.append(createDatePlanButton(plan, "important-date-card"));
+  });
+}
+
+function renderDatesPage() {
+  const plans = getImportantDates();
+  if (elements.dateCreatorDateInput && !elements.dateCreatorDateInput.value) {
+    elements.dateCreatorDateInput.value = toDateTimeLocalValue(getDefaultDatePlanTimestamp(1));
+  }
+  elements.datesList.innerHTML = "";
+
+  if (!plans.length) {
+    elements.datesList.innerHTML = `<p class="important-dates-empty">No dates yet. Add one here or mark a Love Lottery date.</p>`;
+    return;
+  }
+
+  plans.forEach((plan) => {
+    elements.datesList.append(createDatePlanButton(plan, "date-plan-card"));
+  });
+}
+
+function createDatePlanButton(plan, className = "date-plan-chip") {
+  const card = document.createElement("article");
+  card.className = className;
+  card.innerHTML = `
+    <div class="date-plan-card-copy">
+      <span>${escapeHtml(plan.label)}</span>
+      <strong>${escapeHtml(formatDatePlan(plan))}</strong>
+      ${plan.location ? `<em>${escapeHtml(plan.location)}</em>` : `<em>${escapeHtml(plan.source === "lottery" ? "From Love Lottery" : "Custom date")}</em>`}
+      ${plan.note ? `<p class="date-plan-note">${escapeHtml(plan.note)}</p>` : ""}
+      ${renderDatePlanLocation(plan.location)}
+    </div>
+    <button class="secondary-button date-plan-edit-button" type="button" data-date-plan-id="${escapeAttribute(plan.planId)}">Edit</button>
+  `;
+  return card;
 }
 
 function renderNextDateLog() {
-  const plan = state.loveLottery.nextDatePlan;
-  if (!plan?.scheduledFor) {
+  const plans = getImportantDates();
+  if (!plans.length) {
     elements.nextDateLog.hidden = true;
     elements.nextDateLog.textContent = "";
     return;
   }
 
   elements.nextDateLog.hidden = false;
-  elements.nextDateLog.innerHTML = `
-    <span>Next date</span>
-    <strong>${escapeHtml(formatDatePlan(plan))}</strong>
-    <em>${escapeHtml(plan.task || "")}</em>
+  elements.nextDateLog.innerHTML = "";
+  const label = document.createElement("span");
+  label.textContent = "Pinned dates";
+  elements.nextDateLog.append(label);
+
+  const list = document.createElement("div");
+  list.className = "next-date-log-list";
+  plans.forEach((plan) => {
+    list.append(createDatePlanButton(plan));
+  });
+  elements.nextDateLog.append(list);
+}
+
+function renderTodayPicks() {
+  const todaySelections = getTodayLoveLotteryMarkedPicks();
+  const selectedEntry = getSelectedLoveLotterySelection();
+  elements.todayPicksList.innerHTML = "";
+
+  if (!todaySelections.length) {
+    elements.todayPicksList.innerHTML = `<p class="today-picks-empty">Nothing picked yet today.</p>`;
+    return;
+  }
+
+  todaySelections.forEach((entry, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "today-pick-card";
+    if (entry.selectionId) {
+      button.dataset.selectionId = entry.selectionId;
+    }
+    button.classList.toggle("is-active", selectedEntry?.id === entry.selectionId);
+    const displayPlan = entry.nextDatePlan || entry.datePlan || null;
+    button.innerHTML = `
+      <span>Pick ${index + 1}</span>
+      <strong>${escapeHtml(entry.label)}</strong>
+      <em>${escapeHtml(entry.category === "date" && displayPlan ? formatLoveLotteryDateTime(new Date(displayPlan.scheduledFor)) : entry.category)}</em>
+    `;
+    elements.todayPicksList.append(button);
+  });
+}
+
+function renderSelectedDateNote() {
+  const selectedEntry = getSelectedLoveLotterySelection();
+  const datePlan = selectedEntry?.datePlan;
+
+  if (selectedEntry?.category !== "date" || !datePlan?.scheduledFor) {
+    elements.selectedDateNote.hidden = true;
+    elements.selectedDateNote.textContent = "";
+    return;
+  }
+
+  elements.selectedDateNote.hidden = false;
+  elements.selectedDateNote.innerHTML = `
+    <span>Selected date</span>
+    <strong>${escapeHtml(selectedEntry.label)}</strong>
+    <em>${escapeHtml(formatDatePlan(datePlan))}</em>
   `;
+}
+
+function setSelectedLoveLotterySelection(selectionId) {
+  const selection = (state.loveLottery.selections || []).find((entry) => entry.id === selectionId);
+  if (!selection) {
+    return;
+  }
+
+  state.selectedActivityId = selection.id;
+  renderLoveLottery();
+}
+
+function addManualDatePlan(event) {
+  event.preventDefault();
+  const label = elements.dateCreatorNameInput.value.trim();
+  const scheduledRaw = elements.dateCreatorDateInput.value;
+  const location = elements.dateCreatorLocationInput.value.trim();
+
+  if (!label || !scheduledRaw) {
+    return;
+  }
+
+  state.loveLottery.pinnedDatePlans = [
+    ...(state.loveLottery.pinnedDatePlans || []),
+    normalizeLoveLotteryDatePlan({
+      planId: crypto.randomUUID?.() || `date-plan-${Date.now()}`,
+      label,
+      location,
+      source: "manual",
+      weeks: 1,
+      scheduledFor: new Date(scheduledRaw).toISOString(),
+      createdAt: new Date().toISOString(),
+    }),
+  ];
+  saveLoveLotteryProgress();
+  renderImportantDates();
+  renderDatesPage();
+  renderLoveLottery();
+  elements.dateCreatorForm.reset();
+  elements.dateCreatorForm.hidden = true;
+  elements.openDateCreatorButton.setAttribute("aria-expanded", "false");
+  showToast("Date added", "It is now saved in Dates.");
+}
+
+function openDateEditor(planId) {
+  const plan = [...(state.loveLottery.pinnedDatePlans || []), ...getTodayLoveLotterySelections().map((entry) => entry.datePlan).filter(Boolean)]
+    .find((item) => item?.planId === planId);
+
+  if (!plan) {
+    return;
+  }
+
+  state.activeDateEditorPlanId = planId;
+  elements.dateEditorItemName.textContent = plan.label;
+  elements.dateEditorNameInput.value = plan.label;
+  elements.dateEditorNameInput.disabled = plan.source === "lottery";
+  elements.dateEditorInput.value = toDateTimeLocalValue(plan.scheduledFor);
+  elements.dateEditorLocationInput.value = plan.location || "";
+  const links = getMapLinks(plan.location);
+  elements.dateEditorMapLinks.innerHTML = links
+    ? `
+      <a href="${escapeAttribute(links.apple)}" target="_blank" rel="noopener noreferrer">Open in Apple Maps</a>
+      <a href="${escapeAttribute(links.google)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+    `
+    : `<span>No location set yet.</span>`;
+  elements.dateEditorModal.hidden = false;
+}
+
+function closeDateEditor() {
+  elements.dateEditorModal.hidden = true;
+  state.activeDateEditorPlanId = null;
+}
+
+function openMilestoneRewardModal(milestone) {
+  const completionCount = getLoveLotteryCompletionCount();
+  if (!isMilestoneUnlocked(milestone, completionCount) || getClaimedMilestoneReward(milestone)) {
+    return;
+  }
+
+  state.activeMilestoneReward = milestone;
+  elements.milestoneRewardEarnedText.textContent = `Reward earned from ${milestone} stars.`;
+  elements.milestoneRewardTypeSelect.value = "date";
+  elements.milestoneRewardNameInput.value = "";
+  elements.milestoneRewardDateInput.value = toDateTimeLocalValue(getDefaultDatePlanTimestamp(1));
+  elements.milestoneRewardLocationInput.value = "";
+  updateMilestoneRewardForm();
+  elements.milestoneRewardModal.hidden = false;
+}
+
+function closeMilestoneRewardModal() {
+  elements.milestoneRewardModal.hidden = true;
+  state.activeMilestoneReward = null;
+}
+
+function updateMilestoneRewardForm() {
+  const type = elements.milestoneRewardTypeSelect.value;
+  const needsDateFields = type === "date" || type === "trip";
+  elements.milestoneRewardDateFields.hidden = !needsDateFields;
+  elements.milestoneRewardDateInput.required = needsDateFields;
+  elements.milestoneRewardLocationInput.required = false;
+}
+
+async function saveMilestoneReward() {
+  const milestone = state.activeMilestoneReward;
+  const type = elements.milestoneRewardTypeSelect.value;
+  const label = elements.milestoneRewardNameInput.value.trim();
+  const scheduledRaw = elements.milestoneRewardDateInput.value;
+  const location = elements.milestoneRewardLocationInput.value.trim();
+
+  if (!milestone || !label) {
+    return;
+  }
+
+  if ((type === "date" || type === "trip") && !scheduledRaw) {
+    return;
+  }
+
+  const confirmed = window.confirm(`Are you sure you want to claim ${type} from ${milestone} stars?`);
+  if (!confirmed) {
+    return;
+  }
+
+  let linkedId = "";
+
+  if (type === "gift") {
+    const localItem = {
+      id: crypto.randomUUID?.() || `wish-${Date.now()}`,
+      page_id: PAGE_ID,
+      item_name: label,
+      item_url: "",
+      note: `Earned from ${milestone} stars`,
+      added_by: "Calvin",
+      purchased: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const remote = await addRemoteWishlistItem(localItem);
+    const item = normalizeWishlistItems([remote.item || localItem])[0];
+    state.wishlist = [item, ...state.wishlist.filter((wish) => wish.id !== item.id)];
+    saveWishlistItems();
+    renderWishlist();
+    linkedId = item.id;
+  } else {
+    const plan = normalizeLoveLotteryDatePlan({
+      planId: crypto.randomUUID?.() || `reward-plan-${Date.now()}`,
+      label,
+      location,
+      source: type,
+      weeks: 1,
+      scheduledFor: new Date(scheduledRaw).toISOString(),
+      createdAt: new Date().toISOString(),
+      task: `Earned from ${milestone} stars`,
+    });
+    plan.rewardMilestone = milestone;
+    plan.note = `Earned from ${milestone} stars`;
+    state.loveLottery.pinnedDatePlans = [
+      ...(state.loveLottery.pinnedDatePlans || []),
+      plan,
+    ];
+    linkedId = plan.planId;
+  }
+
+  state.loveLottery.claimedRewards = [
+    ...(state.loveLottery.claimedRewards || []),
+    {
+      milestone,
+      type,
+      claimedAt: new Date().toISOString(),
+      label,
+      linkedId,
+    },
+  ];
+  saveLoveLotteryProgress();
+  renderApp();
+  renderLoveLottery();
+  closeMilestoneRewardModal();
+  showToast("Reward created", `Saved from ${milestone} stars.`);
+}
+
+function saveDateEditor() {
+  if (!state.activeDateEditorPlanId || !elements.dateEditorInput.value) {
+    return;
+  }
+
+  const nextIso = new Date(elements.dateEditorInput.value).toISOString();
+  const nextLocation = elements.dateEditorLocationInput.value.trim();
+  const nextName = elements.dateEditorNameInput.value.trim();
+  state.loveLottery.pinnedDatePlans = (state.loveLottery.pinnedDatePlans || []).map((plan) =>
+    plan.planId === state.activeDateEditorPlanId
+      ? {
+          ...plan,
+          label: plan.source === "lottery" ? plan.label : (nextName || plan.label),
+          scheduledFor: nextIso,
+          location: nextLocation,
+        }
+      : plan
+  );
+  state.loveLottery.selections = (state.loveLottery.selections || []).map((selection) => {
+    if (selection?.datePlan?.planId !== state.activeDateEditorPlanId) {
+      return selection;
+    }
+
+    return {
+      ...selection,
+      datePlan: {
+        ...selection.datePlan,
+        label: selection.datePlan.source === "lottery" ? selection.datePlan.label : (nextName || selection.datePlan.label),
+        scheduledFor: nextIso,
+        location: nextLocation,
+      },
+    };
+  });
+  saveLoveLotteryProgress();
+  renderImportantDates();
+  renderDatesPage();
+  renderLoveLottery();
+  closeDateEditor();
+}
+
+function toDateTimeLocalValue(value) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function renderLoveLotteryProgress(completedCount, total) {
@@ -1545,10 +2116,15 @@ function renderLoveLotteryProgress(completedCount, total) {
   elements.loveProgressFill.style.width = `${Math.max(0, (clamped / total) * elements.loveProgressStars.scrollWidth)}px`;
   elements.loveProgressStars.innerHTML = "";
 
-  for (let milestone = 30; milestone <= total; milestone += 30) {
-    const milestoneBox = document.createElement("span");
+  getLoveLotteryRewardMilestones(total).forEach((milestone) => {
+    const claimedReward = getClaimedMilestoneReward(milestone);
+    const milestoneBox = document.createElement("button");
+    milestoneBox.type = "button";
     milestoneBox.className = "love-progress-star";
-    milestoneBox.classList.toggle("is-complete", clamped >= milestone);
+    milestoneBox.dataset.milestoneReward = String(milestone);
+    milestoneBox.classList.toggle("is-complete", isMilestoneUnlocked(milestone, clamped));
+    milestoneBox.classList.toggle("is-claimed", Boolean(claimedReward));
+    milestoneBox.disabled = !isMilestoneUnlocked(milestone, clamped) || Boolean(claimedReward);
     milestoneBox.title = getLoveLotteryMilestoneLabel(milestone);
 
     const star = document.createElement("span");
@@ -1560,8 +2136,14 @@ function renderLoveLotteryProgress(completedCount, total) {
     label.textContent = String(milestone);
 
     milestoneBox.append(star, label);
+    if (claimedReward) {
+      const note = document.createElement("span");
+      note.className = "love-progress-star-note";
+      note.textContent = `Earned from ${milestone} stars`;
+      milestoneBox.append(note);
+    }
     elements.loveProgressStars.append(milestoneBox);
-  }
+  });
 
   window.requestAnimationFrame(() => {
     elements.loveProgressFill.style.width = `${Math.max(0, (clamped / total) * elements.loveProgressStars.scrollWidth)}px`;
@@ -1570,6 +2152,22 @@ function renderLoveLotteryProgress(completedCount, total) {
 
 function getLoveLotteryMilestoneLabel(milestone) {
   return `${milestone}: Plan a date, trip, or gift for Sophia`;
+}
+
+function getLoveLotteryRewardMilestones(total) {
+  const milestones = [0];
+  for (let milestone = 30; milestone <= total; milestone += 30) {
+    milestones.push(milestone);
+  }
+  return milestones;
+}
+
+function isMilestoneUnlocked(milestone, completionCount) {
+  return milestone === 0 || completionCount >= milestone;
+}
+
+function getClaimedMilestoneReward(milestone) {
+  return (state.loveLottery.claimedRewards || []).find((reward) => reward.milestone === milestone) || null;
 }
 
 function renderLoveLotteryMusic() {
@@ -1613,11 +2211,18 @@ function spinLoveLottery() {
   }
 
   const marked = new Set(state.loveLottery.markedIds);
-  const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => activity.category === "shopping" || !marked.has(activity.id));
+  const remaining = LOVE_LOTTERY_ACTIVITIES.filter((activity) => {
+    if (activity.category === "date" && hasScheduledDatePlan()) {
+      return false;
+    }
+    return activity.category === "shopping" || !marked.has(activity.id);
+  });
 
   if (!remaining.length) {
     state.selectedActivityId = null;
-    elements.randomizerResult.textContent = "We marked every idea. Reset marks when we want a fresh jar.";
+    elements.randomizerResult.textContent = hasScheduledDatePlan()
+      ? "A date is already on the calendar, so Love Lottery is using only non-date ideas right now."
+      : "We marked every idea. Reset marks when we want a fresh jar.";
     renderLoveLottery();
     return;
   }
@@ -1641,20 +2246,20 @@ function spinLoveLottery() {
     const selected = remaining[Math.floor(Math.random() * remaining.length)];
     window.clearInterval(state.shuffleTimer);
     state.shuffleTimer = null;
-    state.selectedActivityId = selected.id;
-    if (selected.category === "date") {
-      const plan = getFutureDatePlan(selected);
-      state.loveLottery.nextDatePlan = plan;
-      elements.randomizerResult.textContent = formatDatePlan(plan);
-      elements.randomizerTask.hidden = false;
-      elements.randomizerTask.textContent = plan.task;
-      saveLoveLotteryProgress();
-      renderNextDateLog();
-    } else {
-      elements.randomizerResult.textContent = selected.label;
-      elements.randomizerTask.hidden = true;
-      elements.randomizerTask.textContent = "";
-    }
+    const selection = {
+      id: crypto.randomUUID?.() || `selection-${Date.now()}`,
+      activityId: selected.id,
+      label: selected.label,
+      category: selected.category,
+      selectedAt: new Date().toISOString(),
+      datePlan: selected.category === "date" ? getFutureDatePlan(selected) : null,
+    };
+    state.selectedActivityId = selection.id;
+    state.loveLottery.selections = [
+      ...(Array.isArray(state.loveLottery.selections) ? state.loveLottery.selections : []),
+      selection,
+    ];
+    saveLoveLotteryProgress();
     elements.randomizerStage.classList.remove("is-shuffling");
     elements.spinDateButton.classList.remove("is-spinning");
     elements.spinDateButton.disabled = false;
@@ -1663,34 +2268,37 @@ function spinLoveLottery() {
 }
 
 function markSelectedLoveLotteryActivity() {
-  const activity = getLoveLotteryActivity(state.selectedActivityId);
-  if (!state.selectedActivityId || !activity) {
-    return;
-  }
-
-  if (getLoveLotterySpinsToday() >= 3) {
-    elements.randomizerResult.textContent = "All 3 spins are logged for today.";
-    renderLoveLottery();
+  const selectedEntry = getSelectedLoveLotterySelection();
+  const activity = getLoveLotteryActivity(selectedEntry?.activityId);
+  if (!selectedEntry || !activity) {
     return;
   }
 
   const currentCompletionCount = getLoveLotteryCompletionCount();
-  if (activity.category !== "shopping" && state.loveLottery.markedIds.includes(state.selectedActivityId)) {
+  if (activity.category !== "shopping" && state.loveLottery.markedIds.includes(selectedEntry.activityId)) {
     return;
   }
 
   if (activity.category !== "shopping") {
-    state.loveLottery.markedIds = [...state.loveLottery.markedIds, state.selectedActivityId];
+    state.loveLottery.markedIds = [...state.loveLottery.markedIds, selectedEntry.activityId];
+  }
+
+  if (activity.category === "date" && selectedEntry.datePlan) {
+    const existingPlans = state.loveLottery.pinnedDatePlans || [];
+    if (!existingPlans.some((plan) => plan.planId === selectedEntry.datePlan.planId)) {
+      state.loveLottery.pinnedDatePlans = [...existingPlans, selectedEntry.datePlan];
+    }
   }
 
   state.loveLottery.completionCount = clampNumber(currentCompletionCount + 1, 0, 500, currentCompletionCount);
   state.loveLottery.log = [
     ...(Array.isArray(state.loveLottery.log) ? state.loveLottery.log : []),
     {
-      id: state.selectedActivityId,
+      id: selectedEntry.activityId,
+      selectionId: selectedEntry.id,
       label: activity.label,
       category: activity.category,
-      nextDatePlan: activity.category === "date" ? state.loveLottery.nextDatePlan : null,
+      nextDatePlan: activity.category === "date" ? selectedEntry.datePlan : null,
       loggedAt: new Date().toISOString(),
     },
   ];
@@ -1720,8 +2328,10 @@ function toggleLoveLotteryActivity(activityId) {
 }
 
 function resetLoveLotteryProgress() {
-  state.loveLottery = { markedIds: [], completionCount: 0, log: [], nextDatePlan: null };
+  state.loveLottery = { markedIds: [], completionCount: 0, log: [], selections: [], pinnedDatePlans: [], claimedRewards: [] };
   state.selectedActivityId = null;
+  state.activeDateEditorPlanId = null;
+  state.activeMilestoneReward = null;
   elements.randomizerResult.textContent = formatLoveLotteryDate();
   elements.randomizerTask.hidden = true;
   elements.randomizerTask.textContent = "";
@@ -2311,6 +2921,7 @@ function hexToRgba(hex, alpha) {
 function showScreen(name) {
   const screens = {
     dashboard: elements.dashboardScreen,
+    dates: elements.datesScreen,
     wishlist: elements.wishlistScreen,
     randomizer: elements.randomizerScreen,
     landing: elements.landingScreen,
@@ -2326,18 +2937,28 @@ function showScreen(name) {
 
   state.activeScreen = name;
   document.body.dataset.screen = name;
+  updateGlobalDock();
 
   if (name === "wishlist") {
     renderMusic();
   }
 
-  if ((name === "dashboard" || name === "randomizer") && elements.musicAudio && !elements.musicAudio.paused) {
+  if ((name === "dashboard" || name === "dates" || name === "randomizer") && elements.musicAudio && !elements.musicAudio.paused) {
     elements.musicAudio.pause();
   }
 
   if (name !== "randomizer" && elements.loveLotteryAudio && !elements.loveLotteryAudio.paused) {
     elements.loveLotteryAudio.pause();
   }
+}
+
+function updateGlobalDock() {
+  const dockScreen = ["puzzle", "letter"].includes(state.activeScreen) ? "constellation" : state.activeScreen;
+  elements.dockLinks.forEach((button) => {
+    const target = button.dataset.dockTarget;
+    const active = target === dockScreen;
+    button.classList.toggle("is-active", active);
+  });
 }
 
 function showLetter() {
@@ -3102,10 +3723,24 @@ function setAdminTab(tabName) {
 
 function bindEvents() {
   elements.openSophiaPageButton.addEventListener("click", () => navigateTo("/forsophia"));
+  elements.openDatesButton.addEventListener("click", () => navigateTo("/dates"));
   elements.openWishlistButton.addEventListener("click", () => {
     navigateTo("/wishlist");
     playWishlistMusic({ randomize: true });
   });
+  elements.datesHomeButton.addEventListener("click", () => navigateTo("/"));
+  elements.openDateCreatorButton.addEventListener("click", () => {
+    const willOpen = elements.dateCreatorForm.hidden;
+    elements.dateCreatorForm.hidden = !willOpen ? true : false;
+    elements.openDateCreatorButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    if (willOpen) {
+      if (!elements.dateCreatorDateInput.value) {
+        elements.dateCreatorDateInput.value = toDateTimeLocalValue(getDefaultDatePlanTimestamp(1));
+      }
+      elements.dateCreatorNameInput.focus();
+    }
+  });
+  elements.dateCreatorForm.addEventListener("submit", addManualDatePlan);
   elements.wishlistHomeButton.addEventListener("click", () => navigateTo("/"));
   elements.wishlistTabs.forEach((button) => {
     button.addEventListener("click", () => setWishlistTab(button.dataset.wishlistTab));
@@ -3127,6 +3762,12 @@ function bindEvents() {
   elements.randomizerHomeButton.addEventListener("click", () => navigateTo("/"));
   elements.spinDateButton.addEventListener("click", spinLoveLottery);
   elements.markDateButton.addEventListener("click", markSelectedLoveLotteryActivity);
+  elements.selectedDateNote.addEventListener("click", () => {
+    const selectedEntry = getSelectedLoveLotterySelection();
+    if (selectedEntry?.datePlan?.planId) {
+      openDateEditor(selectedEntry.datePlan.planId);
+    }
+  });
   elements.loveLotteryAudio.addEventListener("play", renderLoveLotteryMusic);
   elements.loveLotteryAudio.addEventListener("pause", renderLoveLotteryMusic);
   elements.openActivityListButton.addEventListener("click", () => {
@@ -3138,11 +3779,68 @@ function bindEvents() {
     }
   });
   elements.resetDateButton.addEventListener("click", resetLoveLotteryProgress);
+  elements.todayPicksList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-selection-id]");
+    if (button) {
+      setSelectedLoveLotterySelection(button.dataset.selectionId);
+    }
+  });
+  [elements.nextDateLog, elements.importantDatesList, elements.datesList].forEach((container) => {
+    container.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-date-plan-id]");
+      if (button) {
+        openDateEditor(button.dataset.datePlanId);
+      }
+    });
+  });
   elements.activityList.addEventListener("click", (event) => {
     const row = event.target.closest("[data-activity-id]");
     if (row) {
       toggleLoveLotteryActivity(row.dataset.activityId);
     }
+  });
+  elements.dateEditorModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-date-editor]")) {
+      closeDateEditor();
+    }
+  });
+  elements.milestoneRewardModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-milestone-reward]")) {
+      closeMilestoneRewardModal();
+    }
+  });
+  elements.saveDateEditorButton.addEventListener("click", saveDateEditor);
+  elements.milestoneRewardTypeSelect.addEventListener("change", updateMilestoneRewardForm);
+  elements.saveMilestoneRewardButton.addEventListener("click", () => {
+    void saveMilestoneReward();
+  });
+  elements.loveProgressStars.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-milestone-reward]");
+    if (button) {
+      openMilestoneRewardModal(Number(button.dataset.milestoneReward));
+    }
+  });
+  elements.dockToggleButton.addEventListener("click", () => navigateTo("/"));
+  elements.dockLinks.forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.dockTarget;
+      if (target === "dates") {
+        navigateTo("/dates");
+        return;
+      }
+      if (target === "randomizer") {
+        navigateTo("/love-lottery");
+        renderLoveLotteryMusic();
+        playLoveLotteryMusic();
+        return;
+      }
+      if (target === "wishlist") {
+        navigateTo("/wishlist");
+        playWishlistMusic({ randomize: true });
+        return;
+      }
+      navigateTo("/forsophia");
+    });
   });
   window.addEventListener("popstate", handleRouteChange);
   elements.adminTabs.forEach((button) => {
@@ -3245,6 +3943,16 @@ function bindEvents() {
 
     if (!elements.activityListModal.hidden) {
       elements.activityListModal.hidden = true;
+      return;
+    }
+
+    if (!elements.dateEditorModal.hidden) {
+      closeDateEditor();
+      return;
+    }
+
+    if (!elements.milestoneRewardModal.hidden) {
+      closeMilestoneRewardModal();
       return;
     }
 
