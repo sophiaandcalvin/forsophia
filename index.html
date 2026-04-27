@@ -8,6 +8,7 @@
   </head>
   <body>
     <canvas id="ambientCanvas" aria-hidden="true"></canvas>
+    <div id="todayPlanBanner" class="today-plan-banner" hidden></div>
 
     <main id="app" class="app">
       <section id="dashboardScreen" class="screen dashboard-screen is-active" aria-labelledby="dashboardTitle">
@@ -74,12 +75,23 @@
             </div>
             <form id="dateCreatorForm" class="date-creator-form" hidden>
               <label>
-                Date name
+                Plan type
+                <select id="dateCreatorTypeSelect">
+                  <option value="date">Date</option>
+                  <option value="trip">Trip</option>
+                </select>
+              </label>
+              <label>
+                Name
                 <input id="dateCreatorNameInput" type="text" maxlength="120" placeholder="Sunset picnic, dinner, museum..." required>
               </label>
               <label>
                 Date and time
                 <input id="dateCreatorDateInput" type="datetime-local" required>
+              </label>
+              <label id="dateCreatorEndLabel" hidden>
+                Trip end
+                <input id="dateCreatorEndInput" type="datetime-local">
               </label>
               <label>
                 Location
@@ -233,12 +245,23 @@
           <h2 id="dateEditorTitle">Edit date</h2>
           <p id="dateEditorItemName" class="date-editor-item-name"></p>
           <label class="date-editor-field">
-            Date name
+            Plan type
+            <select id="dateEditorTypeSelect">
+              <option value="date">Date</option>
+              <option value="trip">Trip</option>
+            </select>
+          </label>
+          <label class="date-editor-field">
+            Name
             <input id="dateEditorNameInput" type="text" maxlength="120">
           </label>
           <label class="date-editor-field">
             Date and time
             <input id="dateEditorInput" type="datetime-local">
+          </label>
+          <label id="dateEditorEndLabel" class="date-editor-field" hidden>
+            Trip end
+            <input id="dateEditorEndInput" type="datetime-local">
           </label>
           <label class="date-editor-field">
             Location
@@ -247,6 +270,32 @@
           <div id="dateEditorMapLinks" class="date-editor-map-links"></div>
           <div class="date-editor-actions">
             <button id="saveDateEditorButton" class="primary-button" type="button">Save date</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="quickRewardModal" class="modal quick-reward-modal" role="dialog" aria-modal="true" aria-labelledby="quickRewardTitle" hidden>
+        <div class="modal-backdrop" data-close-quick-reward></div>
+        <section class="date-editor-card quick-reward-card" aria-labelledby="quickRewardTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close reward picker" data-close-quick-reward>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">First little reward</p>
+          <h2 id="quickRewardTitle">Pick one to start</h2>
+          <p id="quickRewardText" class="date-editor-item-name"></p>
+          <div class="quick-reward-options">
+            <button class="quick-reward-option" type="button" data-quick-reward-type="gift">
+              <strong>Gift</strong>
+              <span>Add a sweet gift reminder to the wish list.</span>
+            </button>
+            <button class="quick-reward-option" type="button" data-quick-reward-type="date">
+              <strong>Date</strong>
+              <span>Create a date in Plans with a starter time.</span>
+            </button>
+            <button class="quick-reward-option" type="button" data-quick-reward-type="trip">
+              <strong>Trip</strong>
+              <span>Create a trip with a starter date range.</span>
+            </button>
           </div>
         </section>
       </div>
@@ -276,6 +325,10 @@
             <label class="date-editor-field">
               Date and time
               <input id="milestoneRewardDateInput" type="datetime-local">
+            </label>
+            <label id="milestoneRewardEndLabel" class="date-editor-field" hidden>
+              Trip end
+              <input id="milestoneRewardEndInput" type="datetime-local">
             </label>
             <label class="date-editor-field">
               Location
@@ -387,6 +440,7 @@
       <button class="dock-link" type="button" data-dock-target="dates">
         <span class="dock-link-icon" aria-hidden="true">✦</span>
         <span>Dates</span>
+        <span id="datesDockBadge" class="dock-flower-badge" hidden></span>
       </button>
       <button class="dock-link" type="button" data-dock-target="randomizer">
         <span class="dock-link-icon" aria-hidden="true">♡</span>
@@ -399,6 +453,7 @@
       <button class="dock-link" type="button" data-dock-target="wishlist">
         <span class="dock-link-icon" aria-hidden="true">☰</span>
         <span>Wish List</span>
+        <span id="wishlistDockBadge" class="dock-flower-badge" hidden></span>
       </button>
     </nav>
 

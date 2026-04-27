@@ -103,7 +103,7 @@ button:disabled {
 }
 
 .dashboard-screen {
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -853,6 +853,18 @@ button:disabled {
   background: rgba(16, 22, 41, 0.9);
 }
 
+.important-date-card.is-incomplete,
+.date-plan-card.is-incomplete,
+.date-plan-chip.is-incomplete {
+  border-color: rgba(243, 211, 134, 0.32);
+}
+
+.important-date-card.is-today,
+.date-plan-card.is-today,
+.date-plan-chip.is-today {
+  animation: todayPlanPulse 1.9s ease-in-out infinite;
+}
+
 .important-date-card span,
 .date-plan-chip span,
 .date-plan-card span,
@@ -904,6 +916,15 @@ button:disabled {
   gap: 0.28rem;
 }
 
+.date-plan-meta {
+  margin: 0;
+  color: rgba(243, 211, 134, 0.85);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .date-plan-edit-button {
   flex: 0 0 auto;
   min-height: 2.4rem;
@@ -934,6 +955,17 @@ button:disabled {
 .date-plan-link-row a:hover,
 .date-editor-map-links a:hover {
   text-decoration: underline;
+}
+
+@keyframes todayPlanPulse {
+  0%,
+  100% {
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
+  }
+
+  50% {
+    box-shadow: 0 0 1rem rgba(246, 166, 186, 0.34), 0 16px 38px rgba(0, 0, 0, 0.22);
+  }
 }
 
 .spin-orb-button {
@@ -1046,6 +1078,11 @@ button:disabled {
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.next-date-log-item {
+  gap: 0;
+  padding: 0.7rem 0.85rem;
 }
 
 .next-date-log strong,
@@ -1897,6 +1934,27 @@ textarea:focus-visible {
   backdrop-filter: blur(16px);
 }
 
+.today-plan-banner {
+  position: fixed;
+  top: 0.85rem;
+  left: 50%;
+  z-index: 60;
+  max-width: min(34rem, calc(100% - 2rem));
+  padding: 0.68rem 1rem;
+  border: 1px solid rgba(243, 211, 134, 0.28);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 30%),
+    rgba(14, 19, 34, 0.92);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: center;
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+}
+
 body[data-screen="dashboard"] .music-player,
 body[data-screen="dates"] .music-player,
 body[data-screen="randomizer"] .music-player {
@@ -1970,6 +2028,15 @@ body[data-screen="randomizer"] .music-player {
   color: var(--ink);
 }
 
+.date-editor-field select {
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
 .date-editor-map-links span {
   color: rgba(247, 241, 232, 0.66);
   font-size: 0.82rem;
@@ -2013,11 +2080,15 @@ body[data-screen="randomizer"] .music-player {
   text-align: center;
 }
 
+.dock-link {
+  position: relative;
+}
+
 .dock-link-icon {
   font-size: 1rem;
 }
 
-.dock-link span:last-child,
+.dock-link > span:nth-child(2),
 .dock-toggle span:last-child {
   font-size: 0.72rem;
   font-weight: 700;
@@ -2026,6 +2097,88 @@ body[data-screen="randomizer"] .music-player {
 .dock-link.is-active {
   border-color: rgba(243, 211, 134, 0.24);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.dock-flower-badge {
+  position: absolute;
+  top: -0.05rem;
+  right: -0.02rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffb8c9, #f3d386);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
+  color: #231426;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  z-index: 1;
+}
+
+.dock-flower-badge[hidden] {
+  display: none !important;
+}
+
+.dock-flower-badge::before {
+  position: absolute;
+  inset: -0.14rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(247, 182, 200, 0.72) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 18%, rgba(247, 182, 200, 0.72) 0 18%, transparent 19%),
+    radial-gradient(circle at 82% 50%, rgba(247, 182, 200, 0.72) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 82%, rgba(247, 182, 200, 0.72) 0 18%, transparent 19%);
+  opacity: 0.9;
+  content: "";
+  z-index: -1;
+}
+
+.dock-flower-badge::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(35, 20, 38, 0.08);
+  content: "";
+}
+
+.quick-reward-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quick-reward-option {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  text-align: left;
+}
+
+.quick-reward-option strong,
+.quick-reward-option span {
+  position: relative;
+  z-index: 1;
+}
+
+.quick-reward-option span {
+  color: rgba(247, 241, 232, 0.7);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.quick-reward-option:hover,
+.quick-reward-option:focus-visible {
+  border-color: rgba(246, 166, 186, 0.42);
+  background: rgba(246, 166, 186, 0.12);
 }
 
 .modal,
@@ -2800,7 +2953,7 @@ body[data-screen="randomizer"] .music-player {
 
   .dashboard-screen,
   .randomizer-screen {
-    padding: 1rem 1rem max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+    padding: 1rem 1rem max(5.1rem, calc(env(safe-area-inset-bottom) + 4.4rem));
   }
 
   .randomizer-screen {
@@ -2809,12 +2962,12 @@ body[data-screen="randomizer"] .music-player {
     max-height: none;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+    padding-bottom: max(5.1rem, calc(env(safe-area-inset-bottom) + 4.4rem));
   }
 
   .randomizer-shell {
     min-height: auto;
-    padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+    padding-bottom: max(3.75rem, calc(env(safe-area-inset-bottom) + 2.9rem));
   }
 
   .dashboard-grid {
@@ -2948,7 +3101,14 @@ body[data-screen="randomizer"] .music-player {
 
   .love-progress-shell {
     padding-top: 0.25rem;
-    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+  }
+
+  .global-dock {
+    right: 0.45rem;
+    bottom: max(0.2rem, env(safe-area-inset-bottom));
+    left: 0.45rem;
+    padding: 0.55rem;
   }
 
   .next-date-log {

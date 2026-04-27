@@ -423,6 +423,7 @@ const state = {
 
 const elements = {
   ambientCanvas: document.querySelector("#ambientCanvas"),
+  todayPlanBanner: document.querySelector("#todayPlanBanner"),
   loveTrailCanvas: document.querySelector("#loveTrailCanvas"),
   dashboardScreen: document.querySelector("#dashboardScreen"),
   importantDatesPanel: document.querySelector("#importantDatesPanel"),
@@ -432,8 +433,11 @@ const elements = {
   datesHomeButton: document.querySelector("#datesHomeButton"),
   openDateCreatorButton: document.querySelector("#openDateCreatorButton"),
   dateCreatorForm: document.querySelector("#dateCreatorForm"),
+  dateCreatorTypeSelect: document.querySelector("#dateCreatorTypeSelect"),
   dateCreatorNameInput: document.querySelector("#dateCreatorNameInput"),
   dateCreatorDateInput: document.querySelector("#dateCreatorDateInput"),
+  dateCreatorEndLabel: document.querySelector("#dateCreatorEndLabel"),
+  dateCreatorEndInput: document.querySelector("#dateCreatorEndInput"),
   dateCreatorLocationInput: document.querySelector("#dateCreatorLocationInput"),
   datesList: document.querySelector("#datesList"),
   wishlistScreen: document.querySelector("#wishlistScreen"),
@@ -467,19 +471,26 @@ const elements = {
   loveProgressFill: document.querySelector("#loveProgressFill"),
   loveProgressStars: document.querySelector("#loveProgressStars"),
   milestoneRewardModal: document.querySelector("#milestoneRewardModal"),
+  quickRewardModal: document.querySelector("#quickRewardModal"),
+  quickRewardText: document.querySelector("#quickRewardText"),
   milestoneRewardEarnedText: document.querySelector("#milestoneRewardEarnedText"),
   milestoneRewardTypeSelect: document.querySelector("#milestoneRewardTypeSelect"),
   milestoneRewardNameInput: document.querySelector("#milestoneRewardNameInput"),
   milestoneRewardDateFields: document.querySelector("#milestoneRewardDateFields"),
   milestoneRewardDateInput: document.querySelector("#milestoneRewardDateInput"),
+  milestoneRewardEndLabel: document.querySelector("#milestoneRewardEndLabel"),
+  milestoneRewardEndInput: document.querySelector("#milestoneRewardEndInput"),
   milestoneRewardLocationInput: document.querySelector("#milestoneRewardLocationInput"),
   saveMilestoneRewardButton: document.querySelector("#saveMilestoneRewardButton"),
   nextDateLog: document.querySelector("#nextDateLog"),
   loveLotteryAudio: document.querySelector("#loveLotteryAudio"),
   dateEditorModal: document.querySelector("#dateEditorModal"),
   dateEditorItemName: document.querySelector("#dateEditorItemName"),
+  dateEditorTypeSelect: document.querySelector("#dateEditorTypeSelect"),
   dateEditorNameInput: document.querySelector("#dateEditorNameInput"),
   dateEditorInput: document.querySelector("#dateEditorInput"),
+  dateEditorEndLabel: document.querySelector("#dateEditorEndLabel"),
+  dateEditorEndInput: document.querySelector("#dateEditorEndInput"),
   dateEditorLocationInput: document.querySelector("#dateEditorLocationInput"),
   dateEditorMapLinks: document.querySelector("#dateEditorMapLinks"),
   saveDateEditorButton: document.querySelector("#saveDateEditorButton"),
@@ -587,6 +598,8 @@ const elements = {
   globalDock: document.querySelector("#globalDock"),
   dockToggleButton: document.querySelector("#dockToggleButton"),
   dockLinks: Array.from(document.querySelectorAll("[data-dock-target]")),
+  datesDockBadge: document.querySelector("#datesDockBadge"),
+  wishlistDockBadge: document.querySelector("#wishlistDockBadge"),
   toastHost: document.querySelector("#toastHost"),
 };
 
@@ -870,7 +883,7 @@ function normalizeLoveLotterySelections(selections) {
 function normalizeLoveLotteryDatePlans(plans) {
   return (Array.isArray(plans) ? plans : [])
     .map((plan) => normalizeLoveLotteryDatePlan(plan, getLoveLotteryActivity(plan?.activityId || plan?.id)))
-    .filter((plan) => plan?.scheduledFor);
+    .filter(Boolean);
 }
 
 function normalizeLoveLotteryDatePlan(plan, activity) {
@@ -881,9 +894,17 @@ function normalizeLoveLotteryDatePlan(plan, activity) {
   const fallbackDate = getDefaultDatePlanTimestamp(1);
   const scheduledFor = plan?.scheduledFor && !Number.isNaN(new Date(plan.scheduledFor).valueOf())
     ? new Date(plan.scheduledFor).toISOString()
-    : fallbackDate;
+    : resolvedPlanType(plan) === "trip" || resolvedPlanType(plan) === "date" || activity
+      ? fallbackDate
+      : "";
+  const endsAt = plan?.endsAt && !Number.isNaN(new Date(plan.endsAt).valueOf())
+    ? new Date(plan.endsAt).toISOString()
+    : resolvedPlanType(plan) === "trip" && scheduledFor
+      ? getDefaultTripEndTimestamp(scheduledFor)
+      : "";
   const weeks = clampNumber(Number(plan?.weeks), 1, 3, 1);
   const resolvedActivity = activity || getLoveLotteryActivity(plan?.activityId || plan?.id);
+  const type = resolvedActivity?.category === "date" ? "date" : resolvedPlanType(plan);
 
   return {
     planId: plan?.planId || plan?.id || crypto.randomUUID?.() || `date-plan-${Date.now()}`,
@@ -892,12 +913,18 @@ function normalizeLoveLotteryDatePlan(plan, activity) {
     task: plan?.task || resolvedActivity?.task || "",
     location: plan?.location || "",
     source: plan?.source || (resolvedActivity ? "lottery" : "manual"),
+    type,
     rewardMilestone: Number.isFinite(Number(plan?.rewardMilestone)) ? Number(plan.rewardMilestone) : null,
     note: plan?.note || "",
     weeks,
     scheduledFor,
+    endsAt,
     createdAt: plan?.createdAt || new Date().toISOString(),
   };
+}
+
+function resolvedPlanType(plan) {
+  return plan?.type === "trip" ? "trip" : "date";
 }
 
 function loadWishlistItems() {
@@ -1311,12 +1338,14 @@ function renderApp() {
   renderImportantDates();
   renderDatesPage();
   renderWishlist();
+  renderTodayPlanBanner();
   prepareSoundEffectPlayers();
   renderHeartPhotoFrame();
   renderStars();
   renderLines();
   renderProgress();
   renderLetter();
+  updateGlobalDock();
 }
 
 function renderHeartPhotoFrame() {
@@ -1422,15 +1451,12 @@ function renderLoveLottery() {
   renderTodayPicks();
   renderSelectedDateNote();
   renderNextDateLog();
+  renderTodayPlanBanner();
+  updateGlobalDock();
   if (!selectedEntry) {
     elements.randomizerResult.textContent = formatLoveLotteryDate();
-    if (hasScheduledDate) {
-      elements.randomizerTask.hidden = false;
-      elements.randomizerTask.textContent = "A date is already scheduled, so today’s spin will skip date ideas until that plan is cleared or moved.";
-    } else {
-      elements.randomizerTask.hidden = true;
-      elements.randomizerTask.textContent = "";
-    }
+    elements.randomizerTask.hidden = true;
+    elements.randomizerTask.textContent = "";
   } else {
     elements.randomizerResult.textContent = selectedEntry.label;
     elements.randomizerTask.hidden = false;
@@ -1703,6 +1729,16 @@ function getDefaultDatePlanTimestamp(weeks) {
   return date.toISOString();
 }
 
+function getDefaultTripEndTimestamp(startValue = getDefaultDatePlanTimestamp(2)) {
+  const date = new Date(startValue);
+  if (Number.isNaN(date.valueOf())) {
+    return "";
+  }
+  date.setDate(date.getDate() + 2);
+  date.setHours(12, 0, 0, 0);
+  return date.toISOString();
+}
+
 function getFutureDatePlan(activity) {
   const weeks = [1, 2, 3][Math.floor(Math.random() * 3)];
   return {
@@ -1712,27 +1748,100 @@ function getFutureDatePlan(activity) {
     task: activity.task,
     location: "",
     source: "lottery",
+    type: "date",
     weeks,
     scheduledFor: getDefaultDatePlanTimestamp(weeks),
+    endsAt: "",
     createdAt: new Date().toISOString(),
   };
 }
 
 function formatDatePlan(plan) {
-  const date = new Date(plan.scheduledFor);
-  return formatLoveLotteryDateTime(date);
+  if (!plan?.scheduledFor) {
+    return plan?.type === "trip" ? "Add trip dates" : "Add date and time";
+  }
+
+  const start = new Date(plan.scheduledFor);
+  if (plan.type === "trip" && plan.endsAt) {
+    const end = new Date(plan.endsAt);
+    return `${formatLoveLotteryDateTime(start)} - ${formatLoveLotteryDateTime(end)}`;
+  }
+  return formatLoveLotteryDateTime(start);
 }
 
 function getImportantDates() {
-  return [...(state.loveLottery.pinnedDatePlans || [])].sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor));
+  return [...(state.loveLottery.pinnedDatePlans || [])].sort((a, b) => {
+    const left = a?.scheduledFor ? new Date(a.scheduledFor).valueOf() : Number.POSITIVE_INFINITY;
+    const right = b?.scheduledFor ? new Date(b.scheduledFor).valueOf() : Number.POSITIVE_INFINITY;
+    return left - right;
+  });
+}
+
+function getTodayPlans() {
+  return getImportantDates().filter(isDatePlanToday);
+}
+
+function getRewardLinkedPlans() {
+  const linked = new Set(
+    (state.loveLottery.claimedRewards || [])
+      .filter((reward) => reward.type === "date" || reward.type === "trip")
+      .map((reward) => reward.linkedId)
+      .filter(Boolean)
+  );
+  return getImportantDates().filter((plan) => linked.has(plan.planId));
+}
+
+function getIncompletePlanCount() {
+  return getImportantDates().filter((plan) => !isDatePlanComplete(plan)).length;
+}
+
+function getPendingGiftRewardCount() {
+  return (state.loveLottery.claimedRewards || [])
+    .filter((reward) => reward.type === "gift" && reward.linkedId)
+    .filter((reward) => {
+      const item = state.wishlist.find((wish) => wish.id === reward.linkedId);
+      return item && !item.purchased;
+    }).length;
 }
 
 function isUpcomingDatePlan(plan) {
   return Boolean(plan?.scheduledFor) && new Date(plan.scheduledFor).valueOf() >= Date.now();
 }
 
+function isDatePlanComplete(plan) {
+  if (!plan) {
+    return false;
+  }
+
+  const hasName = Boolean(String(plan.label || "").trim());
+  const hasStart = Boolean(plan.scheduledFor) && !Number.isNaN(new Date(plan.scheduledFor).valueOf());
+  const hasLocation = Boolean(String(plan.location || "").trim());
+  if (plan.type === "trip") {
+    const hasEnd = Boolean(plan.endsAt) && !Number.isNaN(new Date(plan.endsAt).valueOf());
+    return hasName && hasStart && hasEnd && hasLocation;
+  }
+  return hasName && hasStart && hasLocation;
+}
+
+function isDatePlanToday(plan) {
+  if (!plan?.scheduledFor) {
+    return false;
+  }
+
+  const now = new Date();
+  const start = new Date(plan.scheduledFor);
+  const end = plan.type === "trip" && plan.endsAt ? new Date(plan.endsAt) : start;
+  return startOfDay(start).valueOf() <= startOfDay(now).valueOf() && startOfDay(end).valueOf() >= startOfDay(now).valueOf();
+}
+
+function startOfDay(value) {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 function hasScheduledDatePlan() {
-  return getImportantDates().some(isUpcomingDatePlan);
+  return getImportantDates().some((plan) => isUpcomingDatePlan(plan) && isDatePlanComplete(plan));
 }
 
 function getMapLinks(location) {
@@ -1787,7 +1896,7 @@ function renderDatesPage() {
   elements.datesList.innerHTML = "";
 
   if (!plans.length) {
-    elements.datesList.innerHTML = `<p class="important-dates-empty">No dates yet. Add one here or mark a Love Lottery date.</p>`;
+    elements.datesList.innerHTML = `<p class="important-dates-empty">No plans yet. Add a date or trip here.</p>`;
     return;
   }
 
@@ -1799,11 +1908,14 @@ function renderDatesPage() {
 function createDatePlanButton(plan, className = "date-plan-chip") {
   const card = document.createElement("article");
   card.className = className;
+  card.classList.toggle("is-today", isDatePlanToday(plan));
+  card.classList.toggle("is-incomplete", !isDatePlanComplete(plan));
   card.innerHTML = `
     <div class="date-plan-card-copy">
       <span>${escapeHtml(plan.label)}</span>
       <strong>${escapeHtml(formatDatePlan(plan))}</strong>
-      ${plan.location ? `<em>${escapeHtml(plan.location)}</em>` : `<em>${escapeHtml(plan.source === "lottery" ? "From Love Lottery" : "Custom date")}</em>`}
+      ${plan.location ? `<em>${escapeHtml(plan.location)}</em>` : `<em>${escapeHtml(plan.type === "trip" ? "Add trip location" : "Add date location")}</em>`}
+      <p class="date-plan-meta">${escapeHtml(plan.type === "trip" ? "Trip" : "Date")}${!isDatePlanComplete(plan) ? " · Needs details" : ""}</p>
       ${plan.note ? `<p class="date-plan-note">${escapeHtml(plan.note)}</p>` : ""}
       ${renderDatePlanLocation(plan.location)}
     </div>
@@ -1829,7 +1941,12 @@ function renderNextDateLog() {
   const list = document.createElement("div");
   list.className = "next-date-log-list";
   plans.forEach((plan) => {
-    list.append(createDatePlanButton(plan));
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "date-plan-chip next-date-log-item";
+    item.dataset.datePlanId = plan.planId;
+    item.textContent = plan.label;
+    list.append(item);
   });
   elements.nextDateLog.append(list);
 }
@@ -1890,13 +2007,28 @@ function setSelectedLoveLotterySelection(selectionId) {
   renderLoveLottery();
 }
 
+function updateDateCreatorForm() {
+  const isTrip = elements.dateCreatorTypeSelect.value === "trip";
+  elements.dateCreatorEndLabel.hidden = !isTrip;
+  elements.dateCreatorEndInput.required = isTrip;
+  if (isTrip && !elements.dateCreatorEndInput.value && elements.dateCreatorDateInput.value) {
+    elements.dateCreatorEndInput.value = toDateTimeLocalValue(getDefaultTripEndTimestamp(new Date(elements.dateCreatorDateInput.value).toISOString()));
+  }
+}
+
 function addManualDatePlan(event) {
   event.preventDefault();
+  const type = elements.dateCreatorTypeSelect.value === "trip" ? "trip" : "date";
   const label = elements.dateCreatorNameInput.value.trim();
   const scheduledRaw = elements.dateCreatorDateInput.value;
+  const endRaw = elements.dateCreatorEndInput.value;
   const location = elements.dateCreatorLocationInput.value.trim();
 
   if (!label || !scheduledRaw) {
+    return;
+  }
+
+  if (type === "trip" && !endRaw) {
     return;
   }
 
@@ -1907,8 +2039,10 @@ function addManualDatePlan(event) {
       label,
       location,
       source: "manual",
+      type,
       weeks: 1,
       scheduledFor: new Date(scheduledRaw).toISOString(),
+      endsAt: type === "trip" ? new Date(endRaw).toISOString() : "",
       createdAt: new Date().toISOString(),
     }),
   ];
@@ -1917,9 +2051,12 @@ function addManualDatePlan(event) {
   renderDatesPage();
   renderLoveLottery();
   elements.dateCreatorForm.reset();
+  elements.dateCreatorTypeSelect.value = "date";
+  elements.dateCreatorEndInput.value = "";
+  updateDateCreatorForm();
   elements.dateCreatorForm.hidden = true;
   elements.openDateCreatorButton.setAttribute("aria-expanded", "false");
-  showToast("Date added", "It is now saved in Dates.");
+  showToast(type === "trip" ? "Trip added" : "Date added", "It is now saved in Dates.");
 }
 
 function openDateEditor(planId) {
@@ -1932,10 +2069,14 @@ function openDateEditor(planId) {
 
   state.activeDateEditorPlanId = planId;
   elements.dateEditorItemName.textContent = plan.label;
+  elements.dateEditorTypeSelect.value = plan.type || "date";
   elements.dateEditorNameInput.value = plan.label;
   elements.dateEditorNameInput.disabled = plan.source === "lottery";
   elements.dateEditorInput.value = toDateTimeLocalValue(plan.scheduledFor);
+  elements.dateEditorEndInput.value = plan.endsAt ? toDateTimeLocalValue(plan.endsAt) : "";
   elements.dateEditorLocationInput.value = plan.location || "";
+  elements.dateEditorTypeSelect.disabled = plan.source === "lottery";
+  updateDateEditorForm();
   const links = getMapLinks(plan.location);
   elements.dateEditorMapLinks.innerHTML = links
     ? `
@@ -1951,17 +2092,29 @@ function closeDateEditor() {
   state.activeDateEditorPlanId = null;
 }
 
+function updateDateEditorForm() {
+  const isTrip = elements.dateEditorTypeSelect.value === "trip";
+  elements.dateEditorEndLabel.hidden = !isTrip;
+  elements.dateEditorEndInput.required = isTrip;
+}
+
 function openMilestoneRewardModal(milestone) {
   const completionCount = getLoveLotteryCompletionCount();
   if (!isMilestoneUnlocked(milestone, completionCount) || getClaimedMilestoneReward(milestone)) {
     return;
   }
 
+  if (milestone === 0) {
+    openQuickRewardModal(milestone);
+    return;
+  }
+
   state.activeMilestoneReward = milestone;
   elements.milestoneRewardEarnedText.textContent = `Reward earned from ${milestone} stars.`;
   elements.milestoneRewardTypeSelect.value = "date";
-  elements.milestoneRewardNameInput.value = "";
+  elements.milestoneRewardNameInput.value = `Date for us from ${milestone} stars`;
   elements.milestoneRewardDateInput.value = toDateTimeLocalValue(getDefaultDatePlanTimestamp(1));
+  elements.milestoneRewardEndInput.value = "";
   elements.milestoneRewardLocationInput.value = "";
   updateMilestoneRewardForm();
   elements.milestoneRewardModal.hidden = false;
@@ -1972,12 +2125,30 @@ function closeMilestoneRewardModal() {
   state.activeMilestoneReward = null;
 }
 
+function openQuickRewardModal(milestone) {
+  state.activeMilestoneReward = milestone;
+  elements.quickRewardText.textContent = `Choose the first little reward from ${milestone} stars.`;
+  elements.quickRewardModal.hidden = false;
+}
+
+function closeQuickRewardModal() {
+  elements.quickRewardModal.hidden = true;
+  state.activeMilestoneReward = null;
+}
+
 function updateMilestoneRewardForm() {
   const type = elements.milestoneRewardTypeSelect.value;
   const needsDateFields = type === "date" || type === "trip";
+  const isTrip = type === "trip";
   elements.milestoneRewardDateFields.hidden = !needsDateFields;
   elements.milestoneRewardDateInput.required = needsDateFields;
+  elements.milestoneRewardEndLabel.hidden = !isTrip;
+  elements.milestoneRewardEndInput.required = isTrip;
   elements.milestoneRewardLocationInput.required = false;
+
+  if (isTrip && !elements.milestoneRewardEndInput.value && elements.milestoneRewardDateInput.value) {
+    elements.milestoneRewardEndInput.value = toDateTimeLocalValue(getDefaultTripEndTimestamp(new Date(elements.milestoneRewardDateInput.value).toISOString()));
+  }
 }
 
 async function saveMilestoneReward() {
@@ -1985,6 +2156,7 @@ async function saveMilestoneReward() {
   const type = elements.milestoneRewardTypeSelect.value;
   const label = elements.milestoneRewardNameInput.value.trim();
   const scheduledRaw = elements.milestoneRewardDateInput.value;
+  const endRaw = elements.milestoneRewardEndInput.value;
   const location = elements.milestoneRewardLocationInput.value.trim();
 
   if (!milestone || !label) {
@@ -1992,6 +2164,10 @@ async function saveMilestoneReward() {
   }
 
   if ((type === "date" || type === "trip") && !scheduledRaw) {
+    return;
+  }
+
+  if (type === "trip" && !endRaw) {
     return;
   }
 
@@ -2027,8 +2203,10 @@ async function saveMilestoneReward() {
       label,
       location,
       source: type,
+      type,
       weeks: 1,
       scheduledFor: new Date(scheduledRaw).toISOString(),
+      endsAt: type === "trip" ? new Date(endRaw).toISOString() : "",
       createdAt: new Date().toISOString(),
       task: `Earned from ${milestone} stars`,
     });
@@ -2058,20 +2236,95 @@ async function saveMilestoneReward() {
   showToast("Reward created", `Saved from ${milestone} stars.`);
 }
 
+async function createQuickReward(type) {
+  const milestone = state.activeMilestoneReward;
+  if (milestone === null || milestone === undefined) {
+    return;
+  }
+
+  if (type === "gift") {
+    const localItem = {
+      id: crypto.randomUUID?.() || `wish-${Date.now()}`,
+      page_id: PAGE_ID,
+      item_name: `Gift for Sophia from ${milestone} stars`,
+      item_url: "",
+      note: `Earned from ${milestone} stars`,
+      added_by: "Calvin",
+      purchased: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const remote = await addRemoteWishlistItem(localItem);
+    const item = normalizeWishlistItems([remote.item || localItem])[0];
+    state.wishlist = [item, ...state.wishlist.filter((wish) => wish.id !== item.id)];
+    saveWishlistItems();
+    state.loveLottery.claimedRewards = [
+      ...(state.loveLottery.claimedRewards || []),
+      { milestone, type, claimedAt: new Date().toISOString(), label: item.item_name, linkedId: item.id },
+    ];
+    saveLoveLotteryProgress();
+    renderApp();
+    closeQuickRewardModal();
+    navigateTo("/wishlist");
+    showToast("Gift starter added", "It is waiting in the wish list.");
+    return;
+  }
+
+  const isTrip = type === "trip";
+  const start = isTrip ? getDefaultDatePlanTimestamp(2) : getDefaultDatePlanTimestamp(1);
+  const plan = normalizeLoveLotteryDatePlan({
+    planId: crypto.randomUUID?.() || `reward-plan-${Date.now()}`,
+    label: isTrip ? `Trip for us from ${milestone} stars` : `Date for us from ${milestone} stars`,
+    location: "",
+    source: type,
+    type,
+    weeks: isTrip ? 2 : 1,
+    scheduledFor: start,
+    endsAt: isTrip ? getDefaultTripEndTimestamp(start) : "",
+    createdAt: new Date().toISOString(),
+    task: `Earned from ${milestone} stars`,
+    note: `Earned from ${milestone} stars`,
+    rewardMilestone: milestone,
+  });
+
+  state.loveLottery.pinnedDatePlans = [...(state.loveLottery.pinnedDatePlans || []), plan];
+  state.loveLottery.claimedRewards = [
+    ...(state.loveLottery.claimedRewards || []),
+    { milestone, type, claimedAt: new Date().toISOString(), label: plan.label, linkedId: plan.planId },
+  ];
+  saveLoveLotteryProgress();
+  renderApp();
+  renderLoveLottery();
+  closeQuickRewardModal();
+  navigateTo("/dates");
+  openDateEditor(plan.planId);
+  showToast(isTrip ? "Trip starter added" : "Date starter added", "Finish the details in Plans.");
+}
+
 function saveDateEditor() {
   if (!state.activeDateEditorPlanId || !elements.dateEditorInput.value) {
     return;
   }
 
+  if (elements.dateEditorTypeSelect.value === "trip" && !elements.dateEditorEndInput.value) {
+    return;
+  }
+
+  const nextType = elements.dateEditorTypeSelect.value === "trip" ? "trip" : "date";
   const nextIso = new Date(elements.dateEditorInput.value).toISOString();
+  const nextEndIso = nextType === "trip" && elements.dateEditorEndInput.value
+    ? new Date(elements.dateEditorEndInput.value).toISOString()
+    : "";
   const nextLocation = elements.dateEditorLocationInput.value.trim();
   const nextName = elements.dateEditorNameInput.value.trim();
   state.loveLottery.pinnedDatePlans = (state.loveLottery.pinnedDatePlans || []).map((plan) =>
     plan.planId === state.activeDateEditorPlanId
       ? {
           ...plan,
+          type: plan.source === "lottery" ? "date" : nextType,
           label: plan.source === "lottery" ? plan.label : (nextName || plan.label),
           scheduledFor: nextIso,
+          endsAt: plan.source === "lottery" ? "" : nextEndIso,
           location: nextLocation,
         }
       : plan
@@ -2085,8 +2338,10 @@ function saveDateEditor() {
       ...selection,
       datePlan: {
         ...selection.datePlan,
+        type: "date",
         label: selection.datePlan.source === "lottery" ? selection.datePlan.label : (nextName || selection.datePlan.label),
         scheduledFor: nextIso,
+        endsAt: "",
         location: nextLocation,
       },
     };
@@ -2100,6 +2355,9 @@ function saveDateEditor() {
 
 function toDateTimeLocalValue(value) {
   const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) {
+    return "";
+  }
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -2936,6 +3194,7 @@ function showScreen(name) {
   state.activeScreen = name;
   document.body.dataset.screen = name;
   updateGlobalDock();
+  renderTodayPlanBanner();
 
   if (name === "wishlist") {
     renderMusic();
@@ -2957,6 +3216,40 @@ function updateGlobalDock() {
     const active = target === dockScreen;
     button.classList.toggle("is-active", active);
   });
+
+  updateDockBadge(elements.datesDockBadge, getIncompletePlanCount());
+  updateDockBadge(elements.wishlistDockBadge, getPendingGiftRewardCount());
+}
+
+function updateDockBadge(element, count) {
+  if (!element) {
+    return;
+  }
+
+  const safeCount = Number(count) || 0;
+  element.hidden = safeCount <= 0;
+  if (safeCount <= 0) {
+    element.textContent = "";
+    return;
+  }
+  element.textContent = safeCount > 9 ? "9+" : String(safeCount);
+}
+
+function renderTodayPlanBanner() {
+  const plans = getTodayPlans();
+  if (!plans.length) {
+    elements.todayPlanBanner.hidden = true;
+    elements.todayPlanBanner.textContent = "";
+    return;
+  }
+
+  const [first] = plans;
+  const summary = first.type === "trip"
+    ? `Today we have a trip: ${first.label}`
+    : `Today we have a date: ${first.label}`;
+  const extra = plans.length > 1 ? ` +${plans.length - 1} more` : "";
+  elements.todayPlanBanner.textContent = `${summary}${extra}`;
+  elements.todayPlanBanner.hidden = false;
 }
 
 function showLetter() {
@@ -3732,12 +4025,15 @@ function bindEvents() {
     elements.dateCreatorForm.hidden = !willOpen ? true : false;
     elements.openDateCreatorButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
     if (willOpen) {
+      updateDateCreatorForm();
       if (!elements.dateCreatorDateInput.value) {
         elements.dateCreatorDateInput.value = toDateTimeLocalValue(getDefaultDatePlanTimestamp(1));
       }
       elements.dateCreatorNameInput.focus();
     }
   });
+  elements.dateCreatorTypeSelect.addEventListener("change", updateDateCreatorForm);
+  elements.dateCreatorDateInput.addEventListener("change", updateDateCreatorForm);
   elements.dateCreatorForm.addEventListener("submit", addManualDatePlan);
   elements.wishlistHomeButton.addEventListener("click", () => navigateTo("/"));
   elements.wishlistTabs.forEach((button) => {
@@ -3802,13 +4098,26 @@ function bindEvents() {
       closeDateEditor();
     }
   });
+  elements.quickRewardModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-quick-reward]")) {
+      closeQuickRewardModal();
+      return;
+    }
+
+    const option = event.target.closest("[data-quick-reward-type]");
+    if (option) {
+      void createQuickReward(option.dataset.quickRewardType);
+    }
+  });
   elements.milestoneRewardModal.addEventListener("click", (event) => {
     if (event.target.closest("[data-close-milestone-reward]")) {
       closeMilestoneRewardModal();
     }
   });
   elements.saveDateEditorButton.addEventListener("click", saveDateEditor);
+  elements.dateEditorTypeSelect.addEventListener("change", updateDateEditorForm);
   elements.milestoneRewardTypeSelect.addEventListener("change", updateMilestoneRewardForm);
+  elements.milestoneRewardDateInput.addEventListener("change", updateMilestoneRewardForm);
   elements.saveMilestoneRewardButton.addEventListener("click", () => {
     void saveMilestoneReward();
   });
@@ -3951,6 +4260,11 @@ function bindEvents() {
 
     if (!elements.milestoneRewardModal.hidden) {
       closeMilestoneRewardModal();
+      return;
+    }
+
+    if (!elements.quickRewardModal.hidden) {
+      closeQuickRewardModal();
       return;
     }
 
