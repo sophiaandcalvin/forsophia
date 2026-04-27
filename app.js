@@ -1823,7 +1823,7 @@ function renderNextDateLog() {
   elements.nextDateLog.hidden = false;
   elements.nextDateLog.innerHTML = "";
   const label = document.createElement("span");
-  label.textContent = "Pinned dates";
+  label.textContent = "Saved dates";
   elements.nextDateLog.append(label);
 
   const list = document.createElement("div");
@@ -2220,9 +2220,7 @@ function spinLoveLottery() {
 
   if (!remaining.length) {
     state.selectedActivityId = null;
-    elements.randomizerResult.textContent = hasScheduledDatePlan()
-      ? "A date is already on the calendar, so Love Lottery is using only non-date ideas right now."
-      : "We marked every idea. Reset marks when we want a fresh jar.";
+    elements.randomizerResult.textContent = "We marked every idea. Reset marks when we want a fresh jar.";
     renderLoveLottery();
     return;
   }
