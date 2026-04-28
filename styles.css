@@ -547,6 +547,15 @@ button:disabled {
   font-weight: 800;
 }
 
+.wishlist-preview-fallback.is-static {
+  position: static;
+  inset: auto;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .wishlist-card-copy {
   display: grid;
   gap: 0.45rem;
@@ -1070,6 +1079,60 @@ button:disabled {
   background:
     radial-gradient(circle at top right, rgba(246, 166, 186, 0.12), transparent 9rem),
     rgba(15, 20, 36, 0.92);
+}
+
+.today-pick-card.is-complete {
+  border-color: rgba(148, 215, 228, 0.34);
+}
+
+.today-pick-select {
+  display: grid;
+  gap: 0.28rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.today-pick-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.today-pick-complete-button {
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+}
+
+.today-pick-remove-button {
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+}
+
+.today-pick-undo-button {
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+}
+
+.today-pick-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  background: rgba(148, 215, 228, 0.14);
+  color: var(--cyan);
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 
 .next-date-log span {

@@ -170,6 +170,32 @@
         </div>
       </section>
 
+      <div id="wishlistEditorModal" class="modal wishlist-editor-modal" role="dialog" aria-modal="true" aria-labelledby="wishlistEditorTitle" hidden>
+        <div class="modal-backdrop" data-close-wishlist-editor></div>
+        <section class="date-editor-card" aria-labelledby="wishlistEditorTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close wishlist editor" data-close-wishlist-editor>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">Wish List</p>
+          <h2 id="wishlistEditorTitle">Edit gift</h2>
+          <label class="date-editor-field">
+            Item name
+            <input id="wishlistEditorNameInput" type="text" maxlength="120">
+          </label>
+          <label class="date-editor-field">
+            Link
+            <input id="wishlistEditorUrlInput" type="url" placeholder="https://...">
+          </label>
+          <label class="date-editor-field">
+            Note
+            <input id="wishlistEditorNoteInput" type="text" maxlength="180" placeholder="Small note or reminder">
+          </label>
+          <div class="date-editor-actions">
+            <button id="saveWishlistEditorButton" class="primary-button" type="button">Save gift</button>
+          </div>
+        </section>
+      </div>
+
       <section id="randomizerScreen" class="screen randomizer-screen" aria-labelledby="randomizerTitle">
         <div class="randomizer-shell">
           <header class="randomizer-header">
