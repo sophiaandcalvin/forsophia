@@ -77,6 +77,51 @@ with check (
   and owner_id is not null
 );
 
+create table if not exists public.anniversary_progress (
+  page_id text primary key references public.constellation_pages(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  progress jsonb not null default '{"unlockedMain":false,"unlockedCardIds":[]}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.anniversary_progress
+alter column progress set default '{"unlockedMain":false,"unlockedCardIds":[]}'::jsonb;
+
+alter table public.anniversary_progress enable row level security;
+
+drop policy if exists "Public can read anniversary progress" on public.anniversary_progress;
+create policy "Public can read anniversary progress"
+on public.anniversary_progress
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "Authenticated owner can insert anniversary progress" on public.anniversary_progress;
+create policy "Authenticated owner can insert anniversary progress"
+on public.anniversary_progress
+for insert
+to authenticated
+with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
+
+drop policy if exists "Authenticated owner can update anniversary progress" on public.anniversary_progress;
+create policy "Authenticated owner can update anniversary progress"
+on public.anniversary_progress
+for update
+to authenticated
+using ((select auth.uid()) is not null and owner_id = (select auth.uid()))
+with check ((select auth.uid()) is not null and owner_id = (select auth.uid()));
+
+drop policy if exists "Public can update anniversary progress" on public.anniversary_progress;
+create policy "Public can update anniversary progress"
+on public.anniversary_progress
+for update
+to anon, authenticated
+using (true)
+with check (
+  page_id is not null
+  and owner_id is not null
+);
+
 create table if not exists public.wishlist_items (
   id uuid primary key default gen_random_uuid(),
   page_id text not null,

@@ -12,13 +12,42 @@
 
     <main id="app" class="app">
       <section id="dashboardScreen" class="screen dashboard-screen is-active" aria-labelledby="dashboardTitle">
-        <div class="dashboard-shell">
+        <div id="dashboardGatePanel" class="dashboard-gate-panel">
+          <div class="dashboard-gate-card">
+            <p class="overline">Private little home</p>
+            <h1 id="dashboardGateTitle">Our little home</h1>
+            <p id="dashboardGateSubtitle" class="dashboard-gate-subtitle">Enter the pin to open the whole little world.</p>
+            <div id="dashboardPinDots" class="dashboard-pin-dots" aria-label="Home pin progress"></div>
+            <div class="dashboard-pin-pad" aria-label="Home pin pad">
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="1">1</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="2">2</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="3">3</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="4">4</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="5">5</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="6">6</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="7">7</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="8">8</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="9">9</button>
+              <button id="dashboardPinClearButton" class="dashboard-pin-button is-utility" type="button">Clear</button>
+              <button class="dashboard-pin-button" type="button" data-dashboard-pin="0">0</button>
+              <button id="dashboardPinBackspaceButton" class="dashboard-pin-button is-utility" type="button">Delete</button>
+            </div>
+            <button id="dashboardUnlockButton" class="primary-button" type="button">Open our little home</button>
+            <p id="dashboardLockHint" class="dashboard-lock-hint">Enter the pin to open your little home.</p>
+          </div>
+        </div>
+
+        <div id="dashboardMainPanel" class="dashboard-shell" hidden>
           <header class="dashboard-header">
             <p class="overline">Just for us</p>
             <h1 id="dashboardTitle">Our little home</h1>
             <p>Choose where we are going today.</p>
           </header>
           <div class="dashboard-grid">
+            <button id="openAnniversaryButton" class="dashboard-tile dashboard-tile-anniversary" type="button">
+              <span class="dashboard-tile-kicker">Secret</span>
+              <span class="dashboard-tile-title">Anniversary</span>
+            </button>
             <button id="openSophiaPageButton" class="dashboard-tile dashboard-tile-stars" type="button">
               <span class="dashboard-tile-kicker">For Sophia</span>
               <span class="dashboard-tile-title">Constellation</span>
@@ -244,6 +273,134 @@
         <audio id="loveLotteryAudio" preload="metadata" loop></audio>
       </section>
 
+      <section id="anniversaryScreen" class="screen anniversary-screen" aria-labelledby="anniversaryTitle">
+        <div class="anniversary-shell">
+          <header class="anniversary-header">
+            <button id="anniversaryHomeButton" class="icon-button" type="button" aria-label="Back to dashboard">
+              <span aria-hidden="true">&lt;</span>
+            </button>
+            <div>
+              <p class="overline">Secret anniversary</p>
+              <h1 id="anniversaryTitle">Our anniversary of knowing each other</h1>
+            </div>
+            <span id="anniversaryProgressText" class="anniversary-progress-chip">0 / 6 gifts open</span>
+          </header>
+
+          <section id="anniversaryLockPanel" class="anniversary-lock-panel" aria-labelledby="anniversaryLockTitle">
+            <div class="anniversary-lock-copy">
+              <p class="overline">First lock</p>
+              <h2 id="anniversaryLockTitle">Open the tumbler</h2>
+              <p id="anniversarySubtitle" class="anniversary-subtitle">A small secret with six little locks, just for you.</p>
+              <p id="anniversaryIntro" class="anniversary-intro">Unlock the tumbler first, then open each level one by one.</p>
+            </div>
+            <div class="anniversary-tumbler">
+              <div class="anniversary-tumbler-controls">
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-up="0">▲</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-up="1">▲</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-up="2">▲</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-up="3">▲</button>
+              </div>
+              <div id="anniversaryPinDots" class="anniversary-tumbler-digits" aria-label="Anniversary tumbler digits">
+                <span class="anniversary-tumbler-digit">0</span>
+                <span class="anniversary-tumbler-digit">0</span>
+                <span class="anniversary-tumbler-digit">0</span>
+                <span class="anniversary-tumbler-digit">0</span>
+              </div>
+              <div class="anniversary-tumbler-controls">
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-down="0">▼</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-down="1">▼</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-down="2">▼</button>
+                <button class="anniversary-tumbler-step" type="button" data-anniversary-tumbler-down="3">▼</button>
+              </div>
+              <div class="anniversary-tumbler-actions">
+                <button id="anniversaryTumblerResetButton" class="secondary-button" type="button">Reset tumbler</button>
+                <button id="anniversaryUnlockButton" class="primary-button" type="button">Unlock secret</button>
+              </div>
+              <p id="anniversaryLockHint" class="anniversary-lock-hint">Set the tumbler to the secret code.</p>
+            </div>
+          </section>
+
+          <section id="anniversaryMainPanel" class="anniversary-main-panel" hidden>
+            <div class="anniversary-main-copy">
+              <p class="overline">Six little levels</p>
+              <h2>Cute challenges, one gift at a time</h2>
+              <p>Each level gets a little harder, and each unlock reveals the gift waiting behind it.</p>
+            </div>
+            <div id="anniversaryCards" class="anniversary-cards"></div>
+          </section>
+        </div>
+      </section>
+
+      <div id="anniversaryGameModal" class="modal anniversary-game-modal" role="dialog" aria-modal="true" aria-labelledby="anniversaryGameTitle" hidden>
+        <div class="modal-backdrop" data-close-anniversary-game></div>
+        <section id="anniversaryGameCard" class="anniversary-game-card" aria-labelledby="anniversaryGameTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close anniversary challenge" data-close-anniversary-game>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p id="anniversaryGameSubtitle" class="overline">Anniversary challenge</p>
+          <h2 id="anniversaryGameTitle">Level 1</h2>
+          <p id="anniversaryGameDescription" class="anniversary-game-description"></p>
+          <div id="anniversaryGameRotateNotice" class="anniversary-game-rotate-notice" hidden>
+            <span aria-hidden="true">&#8635;</span>
+            <strong>Turn your phone sideways</strong>
+            <p>This matching game is landscape-only so the full board has room to breathe.</p>
+          </div>
+          <div id="anniversaryGameHud" class="anniversary-game-hud" hidden></div>
+          <div id="anniversaryGameBoard" class="anniversary-game-board"></div>
+          <form id="anniversaryGameForm" class="anniversary-game-form" hidden>
+            <input id="anniversaryGameInput" type="text" maxlength="120" placeholder="Type your answer">
+            <button class="primary-button" type="submit">Unlock gift</button>
+          </form>
+          <div id="anniversaryGameGiftReveal" class="anniversary-game-gift" hidden>
+            <span>Gift revealed</span>
+            <strong id="anniversaryGameGiftTitle"></strong>
+            <p id="anniversaryGameGiftText"></p>
+          </div>
+          <p id="anniversaryGameMessage" class="anniversary-game-message"></p>
+        </section>
+      </div>
+
+      <div id="anniversaryDateRewardModal" class="modal anniversary-date-reward-modal" role="dialog" aria-modal="true" aria-labelledby="anniversaryDateRewardTitle" hidden>
+        <div class="modal-backdrop" data-close-anniversary-date-reward></div>
+        <section class="date-editor-card anniversary-date-reward-card" aria-labelledby="anniversaryDateRewardTitle">
+          <button class="icon-button modal-close" type="button" aria-label="Close date reward" data-close-anniversary-date-reward>
+            <span aria-hidden="true">x</span>
+          </button>
+          <p class="overline">Nom Nom Prize</p>
+          <h2 id="anniversaryDateRewardTitle">Pick your date</h2>
+          <div id="anniversaryDateRewardPhoto" class="anniversary-date-reward-photo" hidden></div>
+          <p id="anniversaryDateRewardText" class="date-editor-item-name">Choose the restaurant you want and the date you want us to go.</p>
+          <div id="anniversaryDateRewardIntroActions" class="date-editor-actions anniversary-date-reward-intro-actions">
+            <button id="claimAnniversaryDateRewardButton" class="primary-button" type="button">Claim prize</button>
+            <button id="scheduleAnniversaryDateRewardLaterButton" class="secondary-button" type="button">Schedule later</button>
+          </div>
+          <div id="anniversaryDateRewardFormFields" class="anniversary-date-reward-form-fields" hidden>
+            <label class="date-editor-field">
+              Plan type
+              <select id="anniversaryDateRewardTypeSelect">
+                <option value="date">Date</option>
+                <option value="trip">Trip</option>
+              </select>
+            </label>
+            <label class="date-editor-field">
+              Place
+              <input id="anniversaryDateRewardLocationInput" type="text" maxlength="180" placeholder="Anywhere you want to go">
+            </label>
+            <label class="date-editor-field">
+              Date and time
+              <input id="anniversaryDateRewardDateInput" type="datetime-local">
+            </label>
+            <label id="anniversaryDateRewardEndLabel" class="date-editor-field" hidden>
+              Trip end
+              <input id="anniversaryDateRewardEndInput" type="datetime-local">
+            </label>
+            <div class="date-editor-actions">
+              <button id="saveAnniversaryDateRewardButton" class="primary-button" type="button">Save my date</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <div id="activityListModal" class="modal activity-list-modal" role="dialog" aria-modal="true" aria-labelledby="activityListTitle" hidden>
         <div class="modal-backdrop" data-close-activity-list></div>
         <section class="activity-panel" aria-labelledby="activityListTitle">
@@ -458,7 +615,7 @@
       </label>
     </aside>
 
-    <nav id="globalDock" class="global-dock" aria-label="Quick navigation">
+    <nav id="globalDock" class="global-dock" aria-label="Quick navigation" hidden>
       <button id="dockToggleButton" class="dock-toggle" type="button" aria-label="Go home">
         <span aria-hidden="true">⌂</span>
         <span>Home</span>
@@ -480,6 +637,9 @@
         <span class="dock-link-icon" aria-hidden="true">☰</span>
         <span>Wish List</span>
         <span id="wishlistDockBadge" class="dock-flower-badge" hidden></span>
+      </button>
+      <button class="dock-link" type="button" data-dock-target="anniversary">
+        <span>Anniversary</span>
       </button>
     </nav>
 
@@ -555,6 +715,7 @@
         <div class="admin-tabs" role="tablist" aria-label="Admin sections">
           <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" data-admin-tab="constellation">Constellation</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="loveLottery">Love Lottery</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="anniversary">Anniversary</button>
         </div>
 
         <div id="adminConstellationTab" class="admin-tab-panel is-active" data-admin-panel="constellation">
@@ -730,6 +891,80 @@
             <div class="admin-actions">
               <button id="clearLoveLotteryMusicButton" class="secondary-button" type="button">Clear Love Lottery music</button>
               <button id="resetDateButton" class="secondary-button danger-button" type="button">Reset Love Lottery marks</button>
+            </div>
+          </section>
+        </div>
+
+        <div id="adminAnniversaryTab" class="admin-tab-panel" data-admin-panel="anniversary">
+          <section class="admin-section">
+            <h3>Home pin gate</h3>
+            <label>
+              Home pin code
+              <input id="dashboardEntryCode" type="text" inputmode="numeric" maxlength="6" placeholder="090601">
+            </label>
+            <label>
+              Gate title
+              <input id="dashboardAdminTitle" type="text" maxlength="120">
+            </label>
+            <label>
+              Gate subtitle
+              <input id="dashboardAdminSubtitle" type="text" maxlength="180">
+            </label>
+          </section>
+
+          <section class="admin-section">
+            <h3>Secret lock</h3>
+            <label>
+              Tumbler code
+              <input id="anniversaryEntryCode" type="text" inputmode="numeric" maxlength="4" placeholder="1436">
+            </label>
+            <label>
+              Page title
+              <input id="anniversaryAdminTitle" type="text" maxlength="120">
+            </label>
+            <label>
+              Subtitle
+              <input id="anniversaryAdminSubtitle" type="text" maxlength="180">
+            </label>
+            <label>
+              Intro
+              <textarea id="anniversaryAdminIntro" rows="4"></textarea>
+            </label>
+            <label class="admin-toggle">
+              <input id="anniversaryAdminOverrideToggle" type="checkbox">
+              <span>Override mode</span>
+            </label>
+            <p id="anniversaryAdminOverrideStatus" class="admin-status">Off. Anniversary levels follow the real lock order.</p>
+            <p class="admin-status">Edit the four-digit tumbler and the intro text Sophia sees before the six gifts.</p>
+          </section>
+
+          <section class="admin-section">
+            <div class="section-title-row">
+              <h3>Challenge cards</h3>
+              <span class="admin-status">Upload placeholder images now and swap in gift media later.</span>
+            </div>
+            <div id="anniversaryAdminWorkspace" class="anniversary-admin-workspace">
+              <aside id="mediaLibraryRail" class="media-library-rail" hidden>
+                <div class="section-title-row media-library-rail-header">
+                  <div>
+                    <p class="overline">Media Library</p>
+                    <h4 id="mediaLibraryTitle">Choose a saved photo</h4>
+                  </div>
+                  <button class="icon-button" type="button" aria-label="Close media library" data-close-media-library>
+                    <span aria-hidden="true">x</span>
+                  </button>
+                </div>
+                <p id="mediaLibraryContext" class="media-library-copy">Pick from the photos already saved in your little home.</p>
+                <div id="mediaLibraryGrid" class="media-library-grid"></div>
+                <p id="mediaLibraryEmpty" class="admin-status" hidden>No saved images yet. Upload a few memories or pair images first.</p>
+              </aside>
+              <div class="anniversary-admin-editor-pane">
+                <div id="anniversaryAdminCardList" class="memory-editor-list"></div>
+                <div id="anniversaryAdminCardTabs" class="anniversary-admin-card-tabs" role="tablist" aria-label="Anniversary game folders"></div>
+              </div>
+            </div>
+            <div class="admin-actions">
+              <button id="resetAnniversaryProgressButton" class="secondary-button danger-button" type="button">Reset anniversary progress</button>
             </div>
           </section>
         </div>
